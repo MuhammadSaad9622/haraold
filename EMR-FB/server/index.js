@@ -36,8 +36,8 @@ const PORT = process.env.PORT || 5000;
 // CORS configuration
 const allowedOrigins = [
   'http://localhost:5173', // Local development
-  'https://haraold-muhammadsaad9622s-projects.vercel.app', // Your Vercel app
-  'https://your-production-domain.com' // Add other domains as needed
+  'https://haraold.vercel.app', // Your Vercel app
+  // Add other domains as needed
 ];
 
 app.use(cors({

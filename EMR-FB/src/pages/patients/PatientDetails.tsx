@@ -4,6 +4,7 @@ import axios from 'axios';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import logo from '../../Assets/logo.png';
+import Sig from '../../Assets/sig.png';
 import { useAuth } from '../../contexts/AuthContext';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -444,7 +445,7 @@ const PatientDetails: React.FC<{}> = () => {
     let y = 30;
     const margin = 20;
     const logoBase64 = await toBase64(logo);
-    const signatureBase64 = await toBase64('/src/Assets/sig.png');
+    const signatureBase64 = await toBase64(Sig);
   
     const colors = {
       primary: [44, 62, 80],
