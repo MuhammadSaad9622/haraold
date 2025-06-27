@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import img from '../../Assets/bg-tech.jpg';
+import img from '../../Assets/bg-tech.png';
 import img1 from'../../Assets/logo1.png';
 
 
