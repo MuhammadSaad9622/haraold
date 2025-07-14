@@ -12,7 +12,7 @@ dotenv.config({ path: path.join(__dirname, '.env') });
 // Log environment variables for debugging
 console.log('Environment variables loaded:');
 console.log('MONGODB_URI:', process.env.MONGODB_URI ? 'Set' : 'Not set');
-console.log('OPENROUTER_API_KEY:', process.env.OPENROUTER_API_KEY ? 'Set' : 'Not set');
+console.log('OPENROUTER_API_KEY:', process.env.OPENAI_API_KEY ? 'Set' : 'Not set');
 
 import reportsRoutes from './routes/reports.js';
 import express from 'express';

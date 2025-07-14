@@ -63,7 +63,7 @@ const AppointmentCalendar: React.FC = () => {
         endDate = format(end, 'yyyy-MM-dd');
       }
       
-      const response = await axios.get(`https://emr-fb-1.onrender.com/api/appointments?startDate=${startDate}&endDate=${endDate}`);
+      const response = await axios.get(`http://localhost:5000/api/appointments?startDate=${startDate}&endDate=${endDate}`);
       setAppointments(response.data);
     } catch (error) {
       console.error('Error fetching appointments:', error);

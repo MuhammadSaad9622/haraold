@@ -54,12 +54,12 @@ const InvoiceForm: React.FC = () => {
       setIsLoading(true);
       try {
         // Fetch patients
-        const patientsResponse = await axios.get('https://emr-fb-1.onrender.com/api/patients');
+        const patientsResponse = await axios.get('http://localhost:5000/api/patients');
         setPatients(patientsResponse.data.patients);
         
         // If in edit mode, fetch invoice data
         if (isEditMode) {
-          const invoiceResponse = await axios.get(`https://emr-fb-1.onrender.com/api/billing/${id}`);
+          const invoiceResponse = await axios.get(`http://localhost:5000/api/billing/${id}`);
           const invoiceData = invoiceResponse.data;
           
           setFormData({
@@ -80,7 +80,7 @@ const InvoiceForm: React.FC = () => {
           
           // Fetch visits for this patient
           if (invoiceData.patient._id) {
-            const visitsResponse = await axios.get(`https://emr-fb-1.onrender.com/api/patients/${invoiceData.patient._id}/visits`);
+            const visitsResponse = await axios.get(`http://localhost:5000/api/patients/${invoiceData.patient._id}/visits`);
             setVisits(visitsResponse.data);
           }
         } else {
@@ -91,7 +91,7 @@ const InvoiceForm: React.FC = () => {
             setFormData(prev => ({ ...prev, patient: patientId }));
             
             // Fetch visits for this patient
-            const visitsResponse = await axios.get(`https://emr-fb-1.onrender.com/api/patients/${patientId}/visits`);
+            const visitsResponse = await axios.get(`http://localhost:5000/api/patients/${patientId}/visits`);
             setVisits(visitsResponse.data);
           }
         }
@@ -128,7 +128,7 @@ const InvoiceForm: React.FC = () => {
 
   const fetchPatientVisits = async (patientId: string) => {
     try {
-      const response = await axios.get(`https://emr-fb-1.onrender.com/api/patients/${patientId}/visits`);
+      const response = await axios.get(`http://localhost:5000/api/patients/${patientId}/visits`);
       setVisits(response.data);
     } catch (error) {
       console.error('Error fetching patient visits:', error);
@@ -234,9 +234,9 @@ const InvoiceForm: React.FC = () => {
 
       
       if (isEditMode) {
-        await axios.put(`https://emr-fb-1.onrender.com/api/billing/${id}`, invoiceData);
+        await axios.put(`http://localhost:5000/api/billing/${id}`, invoiceData);
       } else {
-        await axios.post('https://emr-fb-1.onrender.com/api/billing', invoiceData);
+        await axios.post('http://localhost:5000/api/billing', invoiceData);
       }
       
       navigate(`/patients/${formData.patient}`);

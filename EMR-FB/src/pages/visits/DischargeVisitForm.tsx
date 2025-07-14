@@ -96,7 +96,7 @@ const handleSubmit = async (e: React.FormEvent) => {
       patient: id,
     };
 
-    await axios.post('https://emr-fb-1.onrender.com/api/visits', payload);
+    await axios.post('http://localhost:5000/api/visits', payload);
 
     navigate(`/patients/${id}`);
   } catch (err) {

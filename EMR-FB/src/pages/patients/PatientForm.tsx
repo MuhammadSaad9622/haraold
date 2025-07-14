@@ -188,7 +188,7 @@ const PatientForm: React.FC = () => {
       try {
         if (isEditMode) {
           // 🔄 Fetch existing patient data
-          const patientResponse = await axios.get(`https://emr-fb-1.onrender.com/api/patients/${id}`);
+          const patientResponse = await axios.get(`http://localhost:5000/api/patients/${id}`);
           const patientData = patientResponse.data;
   
           if (patientData.dateOfBirth) {
@@ -239,7 +239,7 @@ const PatientForm: React.FC = () => {
   
         // 👨‍⚕️ Fetch doctor list if user is admin
         if (user?.role === 'admin') {
-          const doctorsResponse = await axios.get('https://emr-fb-1.onrender.com/api/auth/doctors');
+          const doctorsResponse = await axios.get('http://localhost:5000/api/auth/doctors');
           setDoctors(doctorsResponse.data);
         }
       } catch (error) {
@@ -476,8 +476,8 @@ const PatientForm: React.FC = () => {
       
       try {
         const response = isEditMode 
-          ? await axios.put(`https://emr-fb-1.onrender.com/api/patients/${id}`, patientData, config)
-          : await axios.post('https://emr-fb-1.onrender.com/api/patients', patientData, config);
+          ? await axios.put(`http://localhost:5000/api/patients/${id}`, patientData, config)
+          : await axios.post('http://localhost:5000/api/patients', patientData, config);
         
         console.log('Server response:', response.data);
         

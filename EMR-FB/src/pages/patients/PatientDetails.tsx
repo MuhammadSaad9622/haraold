@@ -342,11 +342,11 @@ const PatientDetails: React.FC<{}> = () => {
       setIsLoading(true);
       try {
         // Fetch patient details
-        const patientResponse = await axios.get(`https://emr-fb-1.onrender.com/api/patients/${id}`);
+        const patientResponse = await axios.get(`http://localhost:5000/api/patients/${id}`);
         setPatient(patientResponse.data);
         
         // Fetch patient visits
-        const visitsResponse = await axios.get(`https://emr-fb-1.onrender.com/api/patients/${id}/visits`);
+        const visitsResponse = await axios.get(`http://localhost:5000/api/patients/${id}/visits`);
         
         const parsedVisits = visitsResponse.data.map((visit: any) => ({
           ...visit,
@@ -355,11 +355,11 @@ const PatientDetails: React.FC<{}> = () => {
         setVisits(parsedVisits);
         
         // Fetch patient appointments
-        const appointmentsResponse = await axios.get(`https://emr-fb-1.onrender.com/api/appointments?patient=${id}`);
+        const appointmentsResponse = await axios.get(`http://localhost:5000/api/appointments?patient=${id}`);
         setAppointments(appointmentsResponse.data);
         
         // Fetch invoice count for the patient using the dedicated endpoint
-        const invoiceCountResponse = await axios.get(`https://emr-fb-1.onrender.com/api/billing/count/${id}`);
+        const invoiceCountResponse = await axios.get(`http://localhost:5000/api/billing/count/${id}`);
         setInvoiceCount(invoiceCountResponse.data.totalInvoices);
 
         
@@ -478,7 +478,7 @@ const PatientDetails: React.FC<{}> = () => {
     };
   
     try {
-      const response = await axios.post('https://emr-fb-1.onrender.com/api/ai/generate-narrative', {
+      const response = await axios.post('http://localhost:5000/api/ai/generate-narrative', {
         patient,
         visits,
       });
@@ -663,7 +663,7 @@ matches.forEach(([_, section, content]) => {
       const blob = doc.output('blob');
       const formData = new FormData();
       formData.append('file', blob, fileName);
-      await axios.post('https://emr-fb-1.onrender.com/api/reports/upload', formData);
+      await axios.post('http://localhost:5000/api/reports/upload', formData);
   
       const downloadLink = document.createElement('a');
       downloadLink.href = URL.createObjectURL(blob);
