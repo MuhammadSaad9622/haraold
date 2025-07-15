@@ -116,14 +116,9 @@ const PatientForm: React.FC = () => {
     const updated = [...bodyParts];
     updated[index] = { ...updated[index], [field]: value };
     setBodyParts(updated);
-  
-    setFormData(prev => ({
-      ...prev,
-      subjective: {
-        ...prev.subjective,
-        bodyPart: updated
-      }
-    }));
+    
+    // We no longer directly update the bodyPart array here
+    // as it will be derived from the intakes array in preparePatientData
   };
   
   // Function to add a new subjective intake for a body part
@@ -281,6 +276,28 @@ const PatientForm: React.FC = () => {
           if (patientData.subjective && !patientData.subjective.intakes) {
             patientData.subjective.intakes = [];
           }
+          
+          // Transform bodyPart array from database to intakes array for the form
+          if (patientData.subjective && Array.isArray(patientData.subjective.bodyPart) && patientData.subjective.bodyPart.length > 0) {
+            // Map each bodyPart to an intake object
+            patientData.subjective.intakes = patientData.subjective.bodyPart.map(bp => ({
+              bodyPart: bp.part,
+              side: bp.side,
+              severity: bp.severity || '',
+              quality: Array.isArray(bp.quality) ? bp.quality : [],
+              timing: bp.timing || '',
+              context: bp.context || '',
+              exacerbatedBy: Array.isArray(bp.exacerbatedBy) ? bp.exacerbatedBy : [],
+              symptoms: Array.isArray(bp.symptoms) ? bp.symptoms : [],
+              notes: bp.notes || '',
+              radiatingTo: bp.radiatingTo || '',
+              radiatingRight: bp.radiatingRight || false,
+              radiatingLeft: bp.radiatingLeft || false,
+              sciaticaRight: bp.sciaticaRight || false,
+              sciaticaLeft: bp.sciaticaLeft || false,
+              headache: [] // This field is in the form but not in the database model
+            }));
+          }
   
           setFormData(patientData);
         } else {
@@ -418,19 +435,36 @@ const PatientForm: React.FC = () => {
     
     // Clean subjective data
     if (cleanedData.subjective) {
+      // Filter valid intakes
+      const validIntakes = Array.isArray(cleanedData.subjective.intakes)
+        ? cleanedData.subjective.intakes.filter(
+            (intake: SubjectiveIntake) => intake.bodyPart && intake.side
+          )
+        : [];
+      
+      // Transform intakes into bodyPart format expected by the server/database
+      const transformedBodyParts = validIntakes.map((intake: SubjectiveIntake) => ({
+        part: intake.bodyPart,
+        side: intake.side,
+        severity: intake.severity,
+        quality: intake.quality,
+        timing: intake.timing,
+        context: intake.context,
+        exacerbatedBy: intake.exacerbatedBy,
+        symptoms: intake.symptoms,
+        notes: intake.notes,
+        radiatingTo: intake.radiatingTo,
+        radiatingRight: intake.radiatingRight,
+        radiatingLeft: intake.radiatingLeft,
+        sciaticaRight: intake.sciaticaRight,
+        sciaticaLeft: intake.sciaticaLeft
+      }));
+      
       cleanedData.subjective = {
         ...cleanedData.subjective,
-        bodyPart: Array.isArray(cleanedData.subjective.bodyPart)
-          ? cleanedData.subjective.bodyPart.filter(
-              (bp: { part: string; side: string }) =>
-                bp.part && bp.side && bp.part.trim() !== '' && bp.side.trim() !== ''
-            )
-          : [],
-        intakes: Array.isArray(cleanedData.subjective.intakes)
-          ? cleanedData.subjective.intakes.filter(
-              (intake: SubjectiveIntake) => intake.bodyPart && intake.side
-            )
-          : []
+        bodyPart: transformedBodyParts,
+        // Keep intakes for frontend reference but they won't be used by the server
+        intakes: validIntakes
       };
     }
     

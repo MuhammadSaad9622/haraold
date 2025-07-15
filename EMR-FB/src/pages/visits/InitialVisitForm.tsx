@@ -3462,51 +3462,162 @@ const handleTendernessSpasmChange = (
       isOpen={modalIsOpen}
       onRequestClose={() => setModalIsOpen(false)}
       contentLabel="Chief Complaint Modal"
-      className="bg-white rounded-lg shadow-lg max-w-lg mx-auto mt-20 p-6"
-      overlayClassName="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-start z-50"
+      className="bg-white rounded-lg shadow-lg w-11/12 max-w-4xl mx-auto mt-10 p-4 md:p-6 max-h-[90vh] overflow-y-auto"
+      overlayClassName="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-start z-50 pt-4"
     >
-      <h2 className="text-xl font-bold mb-4 text-gray-800">Chief Complaint Info</h2>
+      <div className="flex justify-between items-center mb-4 border-b pb-2">
+        <h2 className="text-xl font-bold text-gray-800">Subjective Intake</h2>
+        <button 
+          onClick={() => setModalIsOpen(false)}
+          className="text-gray-500 hover:text-gray-700 focus:outline-none"
+          aria-label="Close"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
 
       {isLoading ? (
         <p className="text-gray-500">Loading...</p>
-      ) : patientData?.subjective &&
-        Object.entries(patientData.subjective).some(([_, val]) =>
-          val !== null &&
-          val !== undefined &&
-          val !== '' &&
-          !(Array.isArray(val) && val.length === 0) &&
-          !(typeof val === 'boolean' && val === false) &&
-          !(typeof val === 'object' && !Array.isArray(val) && Object.keys(val).length === 0)
-        ) ? (
-        <div className="text-sm text-gray-700 space-y-2">
-          <p>
-            <strong>Body Part(s):</strong>{' '}
-            {Array.isArray(patientData.subjective.bodyPart)
-              ? patientData.subjective.bodyPart.map(bp => `${bp.part} (${bp.side})`).join(', ')
-              : 'N/A'}
-          </p>
-          <p><strong>Severity:</strong> {patientData.subjective.severity ?? 'N/A'}</p>
-          <p><strong>Timing:</strong> {patientData.subjective.timing || 'N/A'}</p>
-          <p><strong>Context:</strong> {patientData.subjective.context || 'N/A'}</p>
-          <p><strong>Quality:</strong> {patientData.subjective.quality?.join(', ') || 'N/A'}</p>
-          <p><strong>Exacerbated By:</strong> {patientData.subjective.exacerbatedBy?.join(', ') || 'N/A'}</p>
-          <p><strong>Symptoms:</strong> {patientData.subjective.symptoms?.join(', ') || 'N/A'}</p>
-          <p><strong>Radiating To:</strong> {patientData.subjective.radiatingTo || 'N/A'}</p>
-          <p><strong>Radiating Pain:</strong> {(patientData.subjective.radiatingLeft || patientData.subjective.radiatingRight)
-            ? [patientData.subjective.radiatingLeft && 'Left', patientData.subjective.radiatingRight && 'Right'].filter(Boolean).join(', ')
-            : 'None'}
-          </p>
-          <p><strong>Sciatica:</strong> {[patientData.subjective.sciaticaLeft && 'Left', patientData.subjective.sciaticaRight && 'Right'].filter(Boolean).join(', ') || 'None'}</p>
-          <p><strong>Notes:</strong> {patientData.subjective.notes || 'N/A'}</p>
+      ) : patientData?.subjective && patientData.subjective.bodyPart && patientData.subjective.bodyPart.length > 0 ? (
+        <div className="text-sm text-gray-700">
+          {/* Body Parts Section */}
+          <div className="mb-4">
+            <h3 className="font-semibold text-lg mb-2">Body Parts</h3>
+            {patientData.subjective.bodyPart.map((bp, index) => (
+              <div key={index} className="mb-4 border-b pb-4 rounded-lg bg-gray-50 p-3">
+                <p className="font-medium text-blue-600 text-lg border-b border-gray-200 pb-1 mb-2">{bp.part} ({bp.side})</p>
+                
+                {/* Display detailed subjective data for each body part */}
+                <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-2">
+                  <div className="bg-white p-2 rounded border border-gray-100 shadow-sm">
+                    <p className="font-medium text-gray-700 text-sm">Severity</p>
+                    <p className="text-gray-900">{bp.severity || 'N/A'}</p>
+                  </div>
+                  <div className="bg-white p-2 rounded border border-gray-100 shadow-sm">
+                    <p className="font-medium text-gray-700 text-sm">Timing</p>
+                    <p className="text-gray-900">{bp.timing || 'N/A'}</p>
+                  </div>
+                  <div className="bg-white p-2 rounded border border-gray-100 shadow-sm">
+                    <p className="font-medium text-gray-700 text-sm">Context</p>
+                    <p className="text-gray-900">{bp.context || 'N/A'}</p>
+                  </div>
+                  <div className="bg-white p-2 rounded border border-gray-100 shadow-sm">
+                    <p className="font-medium text-gray-700 text-sm">Quality</p>
+                    <p className="text-gray-900">{bp.quality?.join(', ') || 'N/A'}</p>
+                  </div>
+                  <div className="bg-white p-2 rounded border border-gray-100 shadow-sm">
+                    <p className="font-medium text-gray-700 text-sm">Exacerbated By</p>
+                    <p className="text-gray-900">{bp.exacerbatedBy?.join(', ') || 'N/A'}</p>
+                  </div>
+                  <div className="bg-white p-2 rounded border border-gray-100 shadow-sm">
+                    <p className="font-medium text-gray-700 text-sm">Symptoms</p>
+                    <p className="text-gray-900">{bp.symptoms?.join(', ') || 'N/A'}</p>
+                  </div>
+                  <div className="bg-white p-2 rounded border border-gray-100 shadow-sm">
+                    <p className="font-medium text-gray-700 text-sm">Radiating To</p>
+                    <p className="text-gray-900">{bp.radiatingTo || 'N/A'}</p>
+                  </div>
+                  <div className="bg-white p-2 rounded border border-gray-100 shadow-sm">
+                    <p className="font-medium text-gray-700 text-sm">Radiating Pain</p>
+                    <p className="text-gray-900">
+                      {(bp.radiatingLeft || bp.radiatingRight)
+                        ? [bp.radiatingLeft && 'Left', bp.radiatingRight && 'Right'].filter(Boolean).join(', ')
+                        : 'None'}
+                    </p>
+                  </div>
+                  <div className="bg-white p-2 rounded border border-gray-100 shadow-sm">
+                    <p className="font-medium text-gray-700 text-sm">Sciatica</p>
+                    <p className="text-gray-900">
+                      {(bp.sciaticaLeft || bp.sciaticaRight)
+                        ? [bp.sciaticaLeft && 'Left', bp.sciaticaRight && 'Right'].filter(Boolean).join(', ')
+                        : 'None'}
+                    </p>
+                  </div>
+                  {bp.notes && (
+                    <div className="col-span-1 sm:col-span-2 md:col-span-3 bg-white p-2 rounded border border-gray-100 shadow-sm">
+                      <p className="font-medium text-gray-700 text-sm">Notes</p>
+                      <p className="text-gray-900">{bp.notes}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+          
+          {/* Legacy Subjective Data - Display if no bodyPart data is available */}
+          {(!patientData.subjective.bodyPart || patientData.subjective.bodyPart.length === 0) && (
+            <div className="mt-4 rounded-lg bg-gray-50 p-3">
+              <h3 className="font-semibold text-lg mb-2 text-blue-600 border-b border-gray-200 pb-1">Legacy Subjective Data</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-2">
+                <div className="bg-white p-2 rounded border border-gray-100 shadow-sm">
+                  <p className="font-medium text-gray-700 text-sm">Severity</p>
+                  <p className="text-gray-900">{patientData.subjective.severity || 'N/A'}</p>
+                </div>
+                <div className="bg-white p-2 rounded border border-gray-100 shadow-sm">
+                  <p className="font-medium text-gray-700 text-sm">Timing</p>
+                  <p className="text-gray-900">{patientData.subjective.timing || 'N/A'}</p>
+                </div>
+                <div className="bg-white p-2 rounded border border-gray-100 shadow-sm">
+                  <p className="font-medium text-gray-700 text-sm">Context</p>
+                  <p className="text-gray-900">{patientData.subjective.context || 'N/A'}</p>
+                </div>
+                <div className="bg-white p-2 rounded border border-gray-100 shadow-sm">
+                  <p className="font-medium text-gray-700 text-sm">Quality</p>
+                  <p className="text-gray-900">{patientData.subjective.quality?.join(', ') || 'N/A'}</p>
+                </div>
+                <div className="bg-white p-2 rounded border border-gray-100 shadow-sm">
+                  <p className="font-medium text-gray-700 text-sm">Exacerbated By</p>
+                  <p className="text-gray-900">{patientData.subjective.exacerbatedBy?.join(', ') || 'N/A'}</p>
+                </div>
+                <div className="bg-white p-2 rounded border border-gray-100 shadow-sm">
+                  <p className="font-medium text-gray-700 text-sm">Symptoms</p>
+                  <p className="text-gray-900">{patientData.subjective.symptoms?.join(', ') || 'N/A'}</p>
+                </div>
+                <div className="bg-white p-2 rounded border border-gray-100 shadow-sm">
+                  <p className="font-medium text-gray-700 text-sm">Radiating To</p>
+                  <p className="text-gray-900">{patientData.subjective.radiatingTo || 'N/A'}</p>
+                </div>
+                <div className="bg-white p-2 rounded border border-gray-100 shadow-sm">
+                  <p className="font-medium text-gray-700 text-sm">Radiating Pain</p>
+                  <p className="text-gray-900">
+                    {(patientData.subjective.radiatingLeft || patientData.subjective.radiatingRight)
+                      ? [patientData.subjective.radiatingLeft && 'Left', patientData.subjective.radiatingRight && 'Right'].filter(Boolean).join(', ')
+                      : 'None'}
+                  </p>
+                </div>
+                <div className="bg-white p-2 rounded border border-gray-100 shadow-sm">
+                  <p className="font-medium text-gray-700 text-sm">Sciatica</p>
+                  <p className="text-gray-900">
+                    {(patientData.subjective.sciaticaLeft || patientData.subjective.sciaticaRight)
+                      ? [patientData.subjective.sciaticaLeft && 'Left', patientData.subjective.sciaticaRight && 'Right'].filter(Boolean).join(', ')
+                      : 'None'}
+                  </p>
+                </div>
+                {patientData.subjective.notes && (
+                  <div className="col-span-1 sm:col-span-2 md:col-span-3 bg-white p-2 rounded border border-gray-100 shadow-sm">
+                    <p className="font-medium text-gray-700 text-sm">Notes</p>
+                    <p className="text-gray-900">{patientData.subjective.notes}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       ) : (
         <p className="text-gray-500">No subjective data found.</p>
       )}
-
-      <div className="mt-4 flex justify-end">
+      <div className="mt-4 flex justify-between">
+        <button 
+          onClick={() => setModalIsOpen(false)} 
+          className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
+        >
+          Cancel
+        </button>
         <button
           onClick={() => setModalIsOpen(false)}
-          className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
+          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
         >
           Close
         </button>

@@ -86,6 +86,28 @@ router.post('/', authenticateToken, async (req, res) => {
       patientData.attorney.caseNumber = formattedCaseNumber;
     }
 
+    // Ensure all subjective fields are present for each body part
+    const subjective = patientData.subjective || {};
+    if (Array.isArray(subjective.bodyPart)) {
+      subjective.bodyPart = subjective.bodyPart.map(bp => ({
+        part: bp.part || "",
+        side: bp.side || "",
+        severity: bp.severity || "",
+        quality: bp.quality || [],
+        timing: bp.timing || "",
+        context: bp.context || "",
+        exacerbatedBy: bp.exacerbatedBy || [],
+        symptoms: bp.symptoms || [],
+        notes: bp.notes || "",
+        radiatingTo: bp.radiatingTo || "",
+        radiatingRight: bp.radiatingRight || false,
+        radiatingLeft: bp.radiatingLeft || false,
+        sciaticaRight: bp.sciaticaRight || false,
+        sciaticaLeft: bp.sciaticaLeft || false,
+      }));
+    }
+    patientData.subjective = subjective;
+
     // 🎯 Create and save patient
     const patient = new Patient({
       ...patientData,
@@ -114,11 +136,34 @@ router.put('/:id', authenticateToken, async (req, res) => {
       return res.status(403).json({ message: 'Access denied' });
     }
 
+    // Ensure all subjective fields are present for each body part
+    const patientData = req.body;
+    const subjective = patientData.subjective || {};
+    if (Array.isArray(subjective.bodyPart)) {
+      subjective.bodyPart = subjective.bodyPart.map(bp => ({
+        part: bp.part || "",
+        side: bp.side || "",
+        severity: bp.severity || "",
+        quality: bp.quality || [],
+        timing: bp.timing || "",
+        context: bp.context || "",
+        exacerbatedBy: bp.exacerbatedBy || [],
+        symptoms: bp.symptoms || [],
+        notes: bp.notes || "",
+        radiatingTo: bp.radiatingTo || "",
+        radiatingRight: bp.radiatingRight || false,
+        radiatingLeft: bp.radiatingLeft || false,
+        sciaticaRight: bp.sciaticaRight || false,
+        sciaticaLeft: bp.sciaticaLeft || false,
+      }));
+    }
+    patientData.subjective = subjective;
+
     const updatedPatient = await Patient.findByIdAndUpdate(
       req.params.id,
       {
-        ...req.body,
-        subjective: req.body.subjective || {}
+        ...patientData,
+        subjective: patientData.subjective || {}
       },
       { new: true, runValidators: true }
     );

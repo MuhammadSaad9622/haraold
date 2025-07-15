@@ -1086,9 +1086,103 @@ matches.forEach(([_, section, content]) => {
     </div>
 
     {/* Display detailed subjective intakes for each body part */}
-    {patient.subjective?.intakes && patient.subjective.intakes.length > 0 ? (
+    {patient.subjective?.bodyPart && patient.subjective.bodyPart.length > 0 ? (
       <div className="space-y-6">
-        {patient.subjective.intakes!.map((intake, index) => (
+        {patient.subjective.bodyPart.map((bp, index) => (
+          <div key={index} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+            <h3 className="text-md font-semibold text-blue-700 mb-3">
+              {bp.part} - {bp.side}
+            </h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-4">
+              {/* Severity */}
+              <div>
+                <dt className="text-sm font-medium text-gray-500">Severity</dt>
+                <dd className="mt-1 text-sm text-gray-900">{bp.severity || 'N/A'}</dd>
+              </div>
+              
+              {/* Quality */}
+              <div>
+                <dt className="text-sm font-medium text-gray-500">Quality</dt>
+                <dd className="mt-1 text-sm text-gray-900">
+                  {bp.quality?.length
+                    ? bp.quality.join(', ')
+                    : 'N/A'}
+                </dd>
+              </div>
+              
+              {/* Timing */}
+              <div>
+                <dt className="text-sm font-medium text-gray-500">Timing</dt>
+                <dd className="mt-1 text-sm text-gray-900">{bp.timing || 'N/A'}</dd>
+              </div>
+              
+              {/* Context */}
+              <div>
+                <dt className="text-sm font-medium text-gray-500">Context</dt>
+                <dd className="mt-1 text-sm text-gray-900">{bp.context || 'N/A'}</dd>
+              </div>
+              
+              {/* Exacerbated By */}
+              <div>
+                <dt className="text-sm font-medium text-gray-500">Exacerbated By</dt>
+                <dd className="mt-1 text-sm text-gray-900">
+                  {bp.exacerbatedBy?.length
+                    ? bp.exacerbatedBy.join(', ')
+                    : 'N/A'}
+                </dd>
+              </div>
+              
+              {/* Symptoms */}
+              <div>
+                <dt className="text-sm font-medium text-gray-500">Symptoms</dt>
+                <dd className="mt-1 text-sm text-gray-900">
+                  {bp.symptoms?.length
+                    ? bp.symptoms.join(', ')
+                    : 'N/A'}
+                </dd>
+              </div>
+              
+              {/* Radiating To */}
+              <div>
+                <dt className="text-sm font-medium text-gray-500">Radiating To</dt>
+                <dd className="mt-1 text-sm text-gray-900">{bp.radiatingTo || 'N/A'}</dd>
+              </div>
+              
+              {/* Radiating Pain */}
+              <div>
+                <dt className="text-sm font-medium text-gray-500">Radiating Pain</dt>
+                <dd className="mt-1 text-sm text-gray-900">
+                  {[
+                    bp.radiatingLeft && 'Left',
+                    bp.radiatingRight && 'Right',
+                  ].filter(Boolean).join(', ') || 'None'}
+                </dd>
+              </div>
+              
+              {/* Sciatica */}
+              <div>
+                <dt className="text-sm font-medium text-gray-500">Sciatica</dt>
+                <dd className="mt-1 text-sm text-gray-900">
+                  {[
+                    bp.sciaticaLeft && 'Left',
+                    bp.sciaticaRight && 'Right',
+                  ].filter(Boolean).join(', ') || 'None'}
+                </dd>
+              </div>
+              
+              {/* Notes */}
+              <div className="md:col-span-2">
+                <dt className="text-sm font-medium text-gray-500">Notes</dt>
+                <dd className="mt-1 text-sm text-gray-900 whitespace-pre-wrap">{bp.notes || 'N/A'}</dd>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    ) : patient.subjective?.intakes && patient.subjective.intakes.length > 0 ? (
+      <div className="space-y-6">
+        {patient.subjective.intakes.map((intake, index) => (
           <div key={index} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
             <h3 className="text-md font-semibold text-blue-700 mb-3">
               {intake.bodyPart} - {intake.side}
@@ -1197,7 +1291,8 @@ matches.forEach(([_, section, content]) => {
     )}
 
     {/* Legacy subjective data display for backward compatibility */}
-    {(!patient.subjective?.intakes || patient.subjective.intakes.length === 0) && (
+    {(!patient.subjective?.intakes || patient.subjective.intakes.length === 0) && 
+     (!patient.subjective?.bodyPart || patient.subjective.bodyPart.length === 0) && (
       <div className="mt-4 pt-4 border-t border-gray-200">
         <h3 className="text-md font-medium text-gray-800 mb-3">Legacy Subjective Data</h3>
         <dl className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-4">

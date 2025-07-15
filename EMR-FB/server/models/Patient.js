@@ -22,19 +22,22 @@ const PatientSchema = new mongoose.Schema({
     familyHistory: [String]
   },
   subjective: {
-    bodyPart: [{ part: String, side: String }],
-    severity: String,
-    quality: [String],
-    timing: String,
-    context: String,
-    exacerbatedBy: [String],
-    symptoms: [String],
-    notes: String,
-    radiatingTo: String,
-    radiatingRight: Boolean,
-    radiatingLeft: Boolean,
-    sciaticaRight: Boolean,
-    sciaticaLeft: Boolean
+    bodyPart: [{
+      part: String,
+      side: String,
+      severity: String,
+      quality: [String],
+      timing: String,
+      context: String,
+      exacerbatedBy: [String],
+      symptoms: [String],
+      notes: String,
+      radiatingTo: String,
+      radiatingRight: Boolean,
+      radiatingLeft: Boolean,
+      sciaticaRight: Boolean,
+      sciaticaLeft: Boolean
+    }]
   },
   attorney: {
     name: String,
