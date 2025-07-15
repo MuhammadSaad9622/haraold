@@ -13,12 +13,12 @@ interface Address {
 }
 
 interface Attorney {
-  name: string;
-  firm: string;
-  phone: string;
-  email: string;
-  caseNumber?: string; // ✅ Add this line
-  address: Omit<Address, 'country'>;
+  name?: string;
+  firm?: string;
+  phone?: string;
+  email?: string;
+  caseNumber?: string;
+  address?: Omit<Address, 'country'>;
 }
 
 
@@ -27,10 +27,10 @@ interface Patient {
   firstName: string;
   lastName: string;
   dateOfBirth: string;
-  gender: string;
   phone: string;
   email: string;
-  status: string;
+  accidentDate: string;
+  accidentType: string;
   visits?: Array<{
     _id: string;
     visitType: string;
@@ -126,10 +126,10 @@ const PatientForm: React.FC = () => {
     firstName: '',
     lastName: '',
     dateOfBirth: '',
-    gender: 'male',
     phone: '',
     email: '',
-    status: 'active', // Default to 'active' instead of 'Active'
+    accidentDate: '',
+    accidentType: '',
     assignedDoctor: user?.role === 'admin' ? '' : user?._id || '',
     address: {
       street: '',
@@ -642,20 +642,17 @@ const PatientForm: React.FC = () => {
                 {errors.dateOfBirth && <p className="mt-1 text-sm text-red-600">{errors.dateOfBirth}</p>}
               </div>
               <div>
-                <label htmlFor="gender" className="block text-sm font-medium text-gray-700 mb-1">
-                  Gender*
+                <label htmlFor="accidentDate" className="block text-sm font-medium text-gray-700 mb-1">
+                  Date of Accident
                 </label>
-                <select
-                  id="gender"
-                  name="gender"
-                  value={formData.gender}
+                <input
+                  type="date"
+                  id="accidentDate"
+                  name="accidentDate"
+                  value={formData.accidentDate}
                   onChange={handleChange}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="male">Male</option>
-                  <option value="female">Female</option>
-                  <option value="other">Other</option>
-                </select>
+                />
               </div>
               <div>
                 <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
@@ -690,20 +687,18 @@ const PatientForm: React.FC = () => {
                 {errors.phone && <p className="mt-1 text-sm text-red-600">{errors.phone}</p>}
               </div>
               <div>
-                <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-1">
-                  Status
+                <label htmlFor="accidentType" className="block text-sm font-medium text-gray-700 mb-1">
+                  Type of Accident
                 </label>
-                <select
-                  name="status"
-                  value={formData.status}
+                <input
+                  type="text"
+                  id="accidentType"
+                  name="accidentType"
+                  value={formData.accidentType}
                   onChange={handleChange}
-                  className="mt-1 block w-full rounded-md border border-gray-300 py-2 px-3 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm"
-                >
-                  <option value="Active">Active</option>
-                  <option value="DC">DC</option>
-                  <option value="Auto DC">Auto DC</option>
-                  <option value="Dropped">Dropped</option>
-                </select>
+                  placeholder="e.g., Motor vehicle accident"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                />
               </div>
               {user?.role === 'admin' && (
                 <div>

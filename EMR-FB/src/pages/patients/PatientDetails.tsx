@@ -465,7 +465,7 @@ const PatientDetails: React.FC<{}> = () => {
       doc.setFontSize(14);
       doc.setTextColor(255, 255, 255);
       doc.setFont('helvetica', 'bold');
-      doc.text('Medical Report', 32, 18);
+      doc.text('The Wellness Studio', 32, 18);
       doc.setFontSize(12);
       doc.setTextColor(...colors.warning);
       doc.text('The Wellness Studio', pageWidth - 15, 18, { align: 'right' });
@@ -510,8 +510,8 @@ const PatientDetails: React.FC<{}> = () => {
         body: [
           ['Name', `${patient.firstName} ${patient.lastName}`],
           ['Date of Birth', new Date(patient.dateOfBirth).toLocaleDateString()],
-          ['Gender', patient.gender],
-          ['Status', patient.status]
+          ['Date of Accident', patient.accidentDate || 'N/A'],
+          ['Type of Accident', patient.accidentType || 'N/A']
         ],
         theme: 'grid',
         margin: { left: margin, right: margin }

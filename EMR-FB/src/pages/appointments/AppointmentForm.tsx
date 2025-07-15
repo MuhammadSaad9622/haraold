@@ -410,9 +410,11 @@ const AppointmentForm: React.FC = () => {
               onChange={handleChange}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
             >
-              <option value="initial">Initial Visit</option>
-              <option value="followup">Follow-up</option>
+              <option value="initial">Initial</option>
+              <option value="followup">Follow up</option>
               <option value="discharge">Discharge</option>
+              <option value="chiropractic">Chiropractic</option>
+              <option value="acupuncture">Acupuncture</option>
               <option value="consultation">Consultation</option>
               <option value="other">Other</option>
             </select>

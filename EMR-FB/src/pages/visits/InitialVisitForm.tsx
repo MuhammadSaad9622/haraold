@@ -4,18 +4,22 @@ import axios from 'axios';
 import { Save, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import Modal from 'react-modal';
-import { useQuery } from '@tanstack/react-query'; // if you're using react-query
+import { useQuery } from '@tanstack/react-query';
+import DiagnosisSelector from './DiagnosisSelector';
 
 
 
 // Define the interface for the form data
 interface InitialVisitFormData {
   chiefComplaint: string;
+  diagnosis: string[];
   vitals: {
-    height: string;
+    heightFeet: string;
+    heightInches: string;
     weight: string;
     temp: string;
-    bp: string;
+    bpSystolic: string;
+    bpDiastolic: string;
     pulse: string;
   };
   grip: {
@@ -38,13 +42,21 @@ interface InitialVisitFormData {
   gaitDevice: string;
   dtr: string[];
   dtrOther: string;
-  dermatomes: string[];
-  dermatomesHypoArea: string;
-  dermatomesHyperArea: string;
+  dermatomes: {
+    [nerveRoot: string]: {
+      left: {
+        hypo: boolean;
+        hyper: boolean;
+      };
+      right: {
+        hypo: boolean;
+        hyper: boolean;
+      };
+    };
+  };
   muscleStrength: string[];
   strength: {
-    C5: string; C6: string; C7: string; C8: string; T1: string;
-    L2: string; L3: string; L4: string; L5: string; S1: string;
+    [key: string]: string;
   };
   oriented: boolean;
   neuroNote: string;
@@ -145,6 +157,7 @@ const InitialVisitForm: React.FC = () => {
 
   Modal.setAppElement('#root');
 const [modalIsOpen, setModalIsOpen] = useState(false);
+const [diagnosisModalOpen, setDiagnosisModalOpen] = useState(false);
 
 const { data: patientData, isLoading } = useQuery({
   queryKey: ['patientData', id],
@@ -165,7 +178,8 @@ const { data: patientData, isLoading } = useQuery({
   // Use the defined interface for the state type
  const [formData, setFormData] = useState<InitialVisitFormData>({
   chiefComplaint: '',
-  vitals: { height: '', weight: '', temp: '', bp: '', pulse: '' },
+  diagnosis: [],
+  vitals: { heightFeet: '', heightInches: '', weight: '', temp: '', bpSystolic: '', bpDiastolic: '', pulse: '' },
   grip: { right1: '', right2: '', right3: '', left1: '', left2: '', left3: '' },
   appearance: [],
   appearanceOther: '',
@@ -175,9 +189,7 @@ const { data: patientData, isLoading } = useQuery({
   gaitDevice: '',
   dtr: [],
   dtrOther: '',
-  dermatomes: [],
-  dermatomesHypoArea: '',
-  dermatomesHyperArea: '',
+  dermatomes: {},
   muscleStrength: [],
   strength: {
     C5: '', C6: '', C7: '', C8: '', T1: '',
@@ -285,7 +297,7 @@ const { data: patientData, isLoading } = useQuery({
     triggerAutoSave();
   };
   
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
     const checked = (e.target as HTMLInputElement).checked;
 
@@ -365,9 +377,16 @@ const { data: patientData, isLoading } = useQuery({
       }
 
       localStorage.removeItem(`initialVisit_${id}`);
-      navigate(`/patients/${id}`);
+      setAutoSaveStatus('Visit saved successfully!');
+      setTimeout(() => {
+        setAutoSaveStatus('');
+        navigate(`/patients/${id}`);
+      }, 2000);
     } catch (error) {
       console.error('Error submitting form:', error);
+      setAutoSaveStatus('Error saving visit. Please try again.');
+      setTimeout(() => setAutoSaveStatus(''), 3000);
+    } finally {
       setIsSaving(false);
     }
   };
@@ -453,20 +472,22 @@ const handleTendernessSpasmChange = (
       {autoSaveStatus && (
         <div className="text-green-700 bg-green-100 p-2 rounded mb-4">{autoSaveStatus}</div>
       )}
-    <div className="min-h-screen bg-gray-100 py-6 px-6">
-    <div className="mt-4">
-  <button
-    type="button"
-    onClick={() => setModalIsOpen(true)}
-    className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700"
-  >
-    View Chief Complaint
-  </button>
-</div>
-  <div className="w-full bg-white rounded-md shadow-md p-8">
-  <h1 className="text-2xl font-bold mb-6 text-center">EXAM </h1>
-  <div>
-</div>
+      
+      <div className="min-h-screen bg-gray-100 py-6 px-6">
+        <div className="mt-4">
+          <button
+            type="button"
+            onClick={() => setModalIsOpen(true)}
+            className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700"
+          >
+            View Chief Complaint
+          </button>
+        </div>
+        
+        <div className="w-full bg-white rounded-md shadow-md p-8">
+          <h1 className="text-2xl font-bold mb-6 text-center">EXAM</h1>
+          
+          <form onSubmit={handleSubmit}>
 
 <section className="mt-4 text-sm text-black w-full">
   <h2 className="text-lg font-semibold mb-2">Chief Complaint</h2>
@@ -481,20 +502,62 @@ const handleTendernessSpasmChange = (
   />
 </section>
 
+<section className="mt-6 text-sm text-black w-full">
+  <h2 className="text-lg font-semibold mb-2">Diagnosis</h2>
+  <div className="flex items-center gap-4">
+    <button
+      type="button"
+      onClick={() => setDiagnosisModalOpen(true)}
+      className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+    >
+      Select Diagnoses
+    </button>
+    <span className="text-gray-600">
+      {formData.diagnosis.length > 0 
+        ? `${formData.diagnosis.length} diagnosis(es) selected`
+        : 'No diagnoses selected'
+      }
+    </span>
+  </div>
+  {formData.diagnosis.length > 0 && (
+    <div className="mt-2 p-2 bg-gray-50 rounded">
+      <p className="text-sm font-medium">Selected Diagnoses:</p>
+      <ul className="mt-1 text-sm text-gray-700">
+        {formData.diagnosis.map((diagnosis, index) => (
+          <li key={index} className="list-disc list-inside">{diagnosis}</li>
+        ))}
+      </ul>
+    </div>
+  )}
+</section>
+
 {/* ------------------- VITALS & GRIP ------------------- */}
 
 <section className="mt-6 w-full">
   <h2 className="text-xl font-semibold mb-4 text-gray-800">VITALS</h2>
   
-  <div className="grid grid-cols-1 md:grid-cols-5 gap-4 text-sm w-full">
+  <div className="grid grid-cols-1 md:grid-cols-6 gap-4 text-sm w-full">
     <div>
-      <label className="block mb-1 text-gray-700">Height</label>
+      <label className="block mb-1 text-gray-700">Height (ft)</label>
       <input
         type="text"
-        name="vitals.height"
-        value={formData.vitals.height || ''}
+        name="vitals.heightFeet"
+        value={formData.vitals.heightFeet || ''}
         onChange={handleInputChange}
         className="w-full border border-black rounded px-2 py-1"
+        placeholder="5"
+      />
+    </div>
+
+    <div>
+      <label className="block mb-1 text-gray-700">Height (in)</label>
+      <input
+        type="text"
+        name="vitals.heightInches"
+        value={formData.vitals.heightInches || ''}
+        onChange={handleInputChange}
+        className="w-full border border-black rounded px-2 py-1"
+        placeholder="10"
       />
     </div>
 
@@ -521,12 +584,24 @@ const handleTendernessSpasmChange = (
     </div>
 
     <div>
-      <label className="block mb-1 text-gray-700">Blood Pressure (BP)</label>
+      <label className="block mb-1 text-gray-700">BP Systolic</label>
       <input
         type="text"
-        name="vitals.bp"
-        placeholder="___/___"
-        value={formData.vitals.bp || ''}
+        name="vitals.bpSystolic"
+        placeholder="120"
+        value={formData.vitals.bpSystolic || ''}
+        onChange={handleInputChange}
+        className="w-full border border-black rounded px-2 py-1"
+      />
+    </div>
+
+    <div>
+      <label className="block mb-1 text-gray-700">BP Diastolic</label>
+      <input
+        type="text"
+        name="vitals.bpDiastolic"
+        placeholder="80"
+        value={formData.vitals.bpDiastolic || ''}
         onChange={handleInputChange}
         className="w-full border border-black rounded px-2 py-1"
       />
@@ -758,54 +833,226 @@ const handleTendernessSpasmChange = (
   {/* ------------------- DERMATOMES ------------------- */}
   <div>
     <h3 className="text-md font-semibold mb-2">DERMATOMES</h3>
-    <div className="flex flex-wrap items-center gap-4">
-      <label className="inline-flex items-center gap-2">
-        <input
-          type="checkbox"
-          checked={formData.dermatomes?.includes('Sensation Intact')}
-          onChange={() => handleCheckboxArrayChange('dermatomes', 'Sensation Intact')}
-          className="accent-indigo-600"
-        />
-        Sensation is intact and equal bilaterally in both upper and lower extremities.
-      </label>
-    </div>
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {/* Cervical Dermatomes */}
+      <div className="border p-3 rounded">
+        <h4 className="font-medium mb-2">Cervical (C1-C8)</h4>
+        {[
+          { root: 'C2', area: 'Back of the head' },
+          { root: 'C3', area: 'Neck' },
+          { root: 'C4', area: 'Shoulder tops, clavicle' },
+          { root: 'C5', area: 'Lateral upper arm (deltoid area)' },
+          { root: 'C6', area: 'Thumb side of forearm and thumb' },
+          { root: 'C7', area: 'Middle finger' },
+          { root: 'C8', area: 'Pinky side of hand and forearm' }
+        ].map(({ root, area }) => (
+          <div key={root} className="mb-2 text-sm">
+            <div className="font-medium">{root} - {area}</div>
+            <div className="flex gap-2 mt-1">
+              <label className="flex items-center gap-1">
+                <span className="text-xs">L:</span>
+                <input
+                  type="checkbox"
+                  checked={formData.dermatomes?.[root]?.left?.hypo || false}
+                  onChange={(e) => {
+                    const updated = { ...formData.dermatomes };
+                    if (!updated[root]) updated[root] = { left: { hypo: false, hyper: false }, right: { hypo: false, hyper: false } };
+                    updated[root].left.hypo = e.target.checked;
+                    setFormData(prev => ({ ...prev, dermatomes: updated }));
+                  }}
+                  className="w-3 h-3"
+                />
+                <span className="text-xs">Hypo</span>
+                <input
+                  type="checkbox"
+                  checked={formData.dermatomes?.[root]?.left?.hyper || false}
+                  onChange={(e) => {
+                    const updated = { ...formData.dermatomes };
+                    if (!updated[root]) updated[root] = { left: { hypo: false, hyper: false }, right: { hypo: false, hyper: false } };
+                    updated[root].left.hyper = e.target.checked;
+                    setFormData(prev => ({ ...prev, dermatomes: updated }));
+                  }}
+                  className="w-3 h-3"
+                />
+                <span className="text-xs">Hyper</span>
+              </label>
+              <label className="flex items-center gap-1">
+                <span className="text-xs">R:</span>
+                <input
+                  type="checkbox"
+                  checked={formData.dermatomes?.[root]?.right?.hypo || false}
+                  onChange={(e) => {
+                    const updated = { ...formData.dermatomes };
+                    if (!updated[root]) updated[root] = { left: { hypo: false, hyper: false }, right: { hypo: false, hyper: false } };
+                    updated[root].right.hypo = e.target.checked;
+                    setFormData(prev => ({ ...prev, dermatomes: updated }));
+                  }}
+                  className="w-3 h-3"
+                />
+                <span className="text-xs">Hypo</span>
+                <input
+                  type="checkbox"
+                  checked={formData.dermatomes?.[root]?.right?.hyper || false}
+                  onChange={(e) => {
+                    const updated = { ...formData.dermatomes };
+                    if (!updated[root]) updated[root] = { left: { hypo: false, hyper: false }, right: { hypo: false, hyper: false } };
+                    updated[root].right.hyper = e.target.checked;
+                    setFormData(prev => ({ ...prev, dermatomes: updated }));
+                  }}
+                  className="w-3 h-3"
+                />
+                <span className="text-xs">Hyper</span>
+              </label>
+            </div>
+          </div>
+        ))}
+      </div>
 
-    <div className="flex flex-wrap gap-6 mt-2">
-      <label className="flex items-center gap-2">
-        <input
-          type="checkbox"
-          checked={formData.dermatomes?.includes('Hypo')}
-          onChange={() => handleCheckboxArrayChange('dermatomes', 'Hypo')}
-          className="accent-indigo-600"
-        />
-        Hypo
-        <input
-          type="text"
-          name="dermatomesHypoArea"
-          value={formData.dermatomesHypoArea || ''}
-          onChange={handleInputChange}
-          placeholder="Area"
-          className="border border-gray-400 rounded px-3 py-1 w-52"
-        />
-      </label>
+      {/* Thoracic Dermatomes */}
+      <div className="border p-3 rounded">
+        <h4 className="font-medium mb-2">Thoracic (T1-T12)</h4>
+        {[
+          { root: 'T1', area: 'Inner forearm' },
+          { root: 'T4', area: 'Nipple line' },
+          { root: 'T10', area: 'Belly button (umbilicus)' },
+          { root: 'T12', area: 'Just above the groin' }
+        ].map(({ root, area }) => (
+          <div key={root} className="mb-2 text-sm">
+            <div className="font-medium">{root} - {area}</div>
+            <div className="flex gap-2 mt-1">
+              <label className="flex items-center gap-1">
+                <span className="text-xs">L:</span>
+                <input
+                  type="checkbox"
+                  checked={formData.dermatomes?.[root]?.left?.hypo || false}
+                  onChange={(e) => {
+                    const updated = { ...formData.dermatomes };
+                    if (!updated[root]) updated[root] = { left: { hypo: false, hyper: false }, right: { hypo: false, hyper: false } };
+                    updated[root].left.hypo = e.target.checked;
+                    setFormData(prev => ({ ...prev, dermatomes: updated }));
+                  }}
+                  className="w-3 h-3"
+                />
+                <span className="text-xs">Hypo</span>
+                <input
+                  type="checkbox"
+                  checked={formData.dermatomes?.[root]?.left?.hyper || false}
+                  onChange={(e) => {
+                    const updated = { ...formData.dermatomes };
+                    if (!updated[root]) updated[root] = { left: { hypo: false, hyper: false }, right: { hypo: false, hyper: false } };
+                    updated[root].left.hyper = e.target.checked;
+                    setFormData(prev => ({ ...prev, dermatomes: updated }));
+                  }}
+                  className="w-3 h-3"
+                />
+                <span className="text-xs">Hyper</span>
+              </label>
+              <label className="flex items-center gap-1">
+                <span className="text-xs">R:</span>
+                <input
+                  type="checkbox"
+                  checked={formData.dermatomes?.[root]?.right?.hypo || false}
+                  onChange={(e) => {
+                    const updated = { ...formData.dermatomes };
+                    if (!updated[root]) updated[root] = { left: { hypo: false, hyper: false }, right: { hypo: false, hyper: false } };
+                    updated[root].right.hypo = e.target.checked;
+                    setFormData(prev => ({ ...prev, dermatomes: updated }));
+                  }}
+                  className="w-3 h-3"
+                />
+                <span className="text-xs">Hypo</span>
+                <input
+                  type="checkbox"
+                  checked={formData.dermatomes?.[root]?.right?.hyper || false}
+                  onChange={(e) => {
+                    const updated = { ...formData.dermatomes };
+                    if (!updated[root]) updated[root] = { left: { hypo: false, hyper: false }, right: { hypo: false, hyper: false } };
+                    updated[root].right.hyper = e.target.checked;
+                    setFormData(prev => ({ ...prev, dermatomes: updated }));
+                  }}
+                  className="w-3 h-3"
+                />
+                <span className="text-xs">Hyper</span>
+              </label>
+            </div>
+          </div>
+        ))}
+      </div>
 
-      <label className="flex items-center gap-2">
-        <input
-          type="checkbox"
-          checked={formData.dermatomes?.includes('Hyper')}
-          onChange={() => handleCheckboxArrayChange('dermatomes', 'Hyper')}
-          className="accent-indigo-600"
-        />
-        Hyper
-        <input
-          type="text"
-          name="dermatomesHyperArea"
-          value={formData.dermatomesHyperArea || ''}
-          onChange={handleInputChange}
-          placeholder="Area"
-          className="border border-gray-400 rounded px-3 py-1 w-52"
-        />
-      </label>
+      {/* Lumbar and Sacral Dermatomes */}
+      <div className="border p-3 rounded">
+        <h4 className="font-medium mb-2">Lumbar & Sacral</h4>
+        {[
+          { root: 'L1', area: 'Groin' },
+          { root: 'L2', area: 'Upper thigh' },
+          { root: 'L3', area: 'Inner thigh to knee' },
+          { root: 'L4', area: 'Knee and medial ankle' },
+          { root: 'L5', area: 'Lateral leg, dorsum of foot, big toe' },
+          { root: 'S1', area: 'Lateral foot and heel' },
+          { root: 'S2', area: 'Back of the thigh' },
+          { root: 'S3-S5', area: 'Perianal area (S5 = innermost)' }
+        ].map(({ root, area }) => (
+          <div key={root} className="mb-2 text-sm">
+            <div className="font-medium">{root} - {area}</div>
+            <div className="flex gap-2 mt-1">
+              <label className="flex items-center gap-1">
+                <span className="text-xs">L:</span>
+                <input
+                  type="checkbox"
+                  checked={formData.dermatomes?.[root]?.left?.hypo || false}
+                  onChange={(e) => {
+                    const updated = { ...formData.dermatomes };
+                    if (!updated[root]) updated[root] = { left: { hypo: false, hyper: false }, right: { hypo: false, hyper: false } };
+                    updated[root].left.hypo = e.target.checked;
+                    setFormData(prev => ({ ...prev, dermatomes: updated }));
+                  }}
+                  className="w-3 h-3"
+                />
+                <span className="text-xs">Hypo</span>
+                <input
+                  type="checkbox"
+                  checked={formData.dermatomes?.[root]?.left?.hyper || false}
+                  onChange={(e) => {
+                    const updated = { ...formData.dermatomes };
+                    if (!updated[root]) updated[root] = { left: { hypo: false, hyper: false }, right: { hypo: false, hyper: false } };
+                    updated[root].left.hyper = e.target.checked;
+                    setFormData(prev => ({ ...prev, dermatomes: updated }));
+                  }}
+                  className="w-3 h-3"
+                />
+                <span className="text-xs">Hyper</span>
+              </label>
+              <label className="flex items-center gap-1">
+                <span className="text-xs">R:</span>
+                <input
+                  type="checkbox"
+                  checked={formData.dermatomes?.[root]?.right?.hypo || false}
+                  onChange={(e) => {
+                    const updated = { ...formData.dermatomes };
+                    if (!updated[root]) updated[root] = { left: { hypo: false, hyper: false }, right: { hypo: false, hyper: false } };
+                    updated[root].right.hypo = e.target.checked;
+                    setFormData(prev => ({ ...prev, dermatomes: updated }));
+                  }}
+                  className="w-3 h-3"
+                />
+                <span className="text-xs">Hypo</span>
+                <input
+                  type="checkbox"
+                  checked={formData.dermatomes?.[root]?.right?.hyper || false}
+                  onChange={(e) => {
+                    const updated = { ...formData.dermatomes };
+                    if (!updated[root]) updated[root] = { left: { hypo: false, hyper: false }, right: { hypo: false, hyper: false } };
+                    updated[root].right.hyper = e.target.checked;
+                    setFormData(prev => ({ ...prev, dermatomes: updated }));
+                  }}
+                  className="w-3 h-3"
+                />
+                <span className="text-xs">Hyper</span>
+              </label>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   </div>
 
@@ -830,27 +1077,53 @@ const handleTendernessSpasmChange = (
     {/* Strength Grid */}
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       {[
-        { key: 'C5', desc: 'Sh Abd (deltoid)/Elb Flex (biceps)' },
-        { key: 'L2', desc: 'Hip Flexion (iliopsoas)' },
-        { key: 'C6', desc: 'Wr Ext (wrist extensors)/Elb Flex (biceps)' },
-        { key: 'L3', desc: 'Knee Extension (quadriceps)' },
-        { key: 'C7', desc: 'Wr Flex (wrist flexors)/Elb Ext (triceps)' },
-        { key: 'L4', desc: 'An Dorsiflexion (tibialis anterior)' },
-        { key: 'C8', desc: 'Finger Flexion' },
-        { key: 'L5', desc: 'Long Toe Extension' },
-        { key: 'T1', desc: 'Finger Abduction/Adduction' },
-        { key: 'S1', desc: 'An Plantarflexion (peroneus longus and brevis)' },
-      ].map(({ key, desc }) => (
-        <label key={key} className="text-sm">
-          <strong>{key}</strong> {desc}
-          <input
-            type="text"
-            name={`strength.${key}`}
-            value={formData.strength?.[key] || ''}
-            onChange={handleInputChange}
-            className="border border-gray-400 rounded px-3 py-1 w-64 ml-2"
-          />
-        </label>
+        { key: 'C5', desc: 'Shoulder abduction – Deltoid', muscle: 'Deltoid' },
+        { key: 'C5-C6', desc: 'Elbow flexion – Biceps', muscle: 'Biceps' },
+        { key: 'C7', desc: 'Elbow extension – Triceps', muscle: 'Triceps' },
+        { key: 'C6', desc: 'Wrist extension', muscle: 'Wrist extensors' },
+        { key: 'C8-T1', desc: 'Grip strength', muscle: 'Grip' },
+        { key: 'L2-L3', desc: 'Hip flexion – Iliopsoas', muscle: 'Iliopsoas' },
+        { key: 'L3-L4', desc: 'Knee extension – Quadriceps', muscle: 'Quadriceps' },
+        { key: 'L4-L5', desc: 'Ankle dorsiflexion – Tibialis anterior', muscle: 'Tibialis anterior' },
+        { key: 'S1', desc: 'Ankle plantarflexion – Gastrocnemius', muscle: 'Gastrocnemius' },
+      ].map(({ key, desc, muscle }) => (
+        <div key={key} className="text-sm border p-2 rounded">
+          <div className="font-medium mb-1">{muscle} ({key})</div>
+          <div className="flex gap-2">
+            <label className="flex items-center gap-1">
+              <span className="text-xs">R:</span>
+              <select
+                name={`strength.${key}.right`}
+                value={formData.strength?.[`${key}.right`] || ''}
+                onChange={handleInputChange}
+                className="border border-gray-400 rounded px-2 py-1 text-xs"
+              >
+                <option value="">-</option>
+                <option value="1">1/5</option>
+                <option value="2">2/5</option>
+                <option value="3">3/5</option>
+                <option value="4">4/5</option>
+                <option value="5">5/5</option>
+              </select>
+            </label>
+            <label className="flex items-center gap-1">
+              <span className="text-xs">L:</span>
+              <select
+                name={`strength.${key}.left`}
+                value={formData.strength?.[`${key}.left`] || ''}
+                onChange={handleInputChange}
+                className="border border-gray-400 rounded px-2 py-1 text-xs"
+              >
+                <option value="">-</option>
+                <option value="1">1/5</option>
+                <option value="2">2/5</option>
+                <option value="3">3/5</option>
+                <option value="4">4/5</option>
+                <option value="5">5/5</option>
+              </select>
+            </label>
+          </div>
+        </div>
       ))}
     </div>
   </div>
@@ -1033,7 +1306,7 @@ const handleTendernessSpasmChange = (
         <label className="block"><input type="checkbox" className="mr-2" />Deceleration <input type="checkbox" className="ml-4 mr-1" />T/S Pain <input type="checkbox" className="ml-4 mr-1" />L/S Pain</label>
       </div>
       <div>
-        <label className="block"><input type="checkbox" className="mr-2" />Gower’s Sign Present <input type="checkbox" className="ml-4 mr-1" />T/S <input type="checkbox" className="ml-4 mr-1" />L/S</label>
+        <label className="block"><input type="checkbox" className="mr-2" />Gower's Sign Present <input type="checkbox" className="ml-4 mr-1" />T/S <input type="checkbox" className="ml-4 mr-1" />L/S</label>
       </div>
       <div>
         <label className="block"><input type="checkbox" className="mr-2" />Deviating Lumbopelvic Rhythm (not smooth)</label>
@@ -1283,7 +1556,7 @@ const handleTendernessSpasmChange = (
         </tr>
       </thead>
       <tbody>
-        {['Kemps', 'Valsalva', "Adam’s"].map(test => (
+        {['Kemps', 'Valsalva', "Adam's"].map(test => (
           <tr key={test}>
             <td className="border border-black px-2 py-1">{test}</td>
             <td className="border border-black px-2 py-1">
@@ -1431,7 +1704,7 @@ const handleTendernessSpasmChange = (
         </tr>
       </thead>
       <tbody>
-        {['Kemps', 'Sitting SLR', 'SLR', 'Valsalva', 'Gaenslen’s'].map(test => (
+        {['Kemps', 'Sitting SLR', 'SLR', 'Valsalva', "Gaenslen's"].map(test => (
           <tr key={test}>
             <td className="border border-black px-2 py-1">{test}</td>
             <td className="border border-black px-2 py-1">
@@ -1770,7 +2043,7 @@ const handleTendernessSpasmChange = (
         </tr>
       </thead>
       <tbody>
-        {['Cozens', 'Varus/Valgus', 'Mill’s'].map(test => (
+        {['Cozens', 'Varus/Valgus', "Mill's"].map(test => (
           <tr key={test}>
             <td className="border border-black px-2 py-1">{test}</td>
             <td className="border border-black px-2 py-1">
@@ -1945,7 +2218,7 @@ const handleTendernessSpasmChange = (
         </tr>
       </thead>
       <tbody>
-        {["Tinel’s", "Finkelstein’s", "Phalen’s", "Reverse Phalen’s"].map(test => (
+        {["Tinel's", "Finkelstein's", "Phalen's", "Reverse Phalen's"].map(test => (
           <tr key={test}>
             <td className="border border-black px-2 py-1">{test}</td>
             <td className="border border-black px-2 py-1">
@@ -2129,7 +2402,7 @@ const handleTendernessSpasmChange = (
         </tr>
       </thead>
       <tbody>
-        {['Grind Test', "Finkelstein’s"].map(test => (
+        {['Grind Test', "Finkelstein's"].map(test => (
           <tr key={test}>
             <td className="border border-black px-2 py-1">{test}</td>
             <td className="border border-black px-2 py-1">
@@ -2302,7 +2575,7 @@ const handleTendernessSpasmChange = (
         {[
           'FABER',
           'Obers',
-          'Trendelenburg’s',
+          "Trendelenburg's",
           'Iliac Compression',
           'Hip Circumduction'
         ].map(test => (
@@ -2908,8 +3181,6 @@ const handleTendernessSpasmChange = (
 
 
     <h1 className="text-2xl font-bold mb-6 text-center">TREATMENT PLAN</h1>
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* FORM UI WILL BE ADDED HERE */}
         
 
 {/* Chiropractic Adjustment */}
@@ -3068,15 +3339,71 @@ const handleTendernessSpasmChange = (
 {/* Recommendations/Restrictions */}
 <section>
   <h2 className="text-lg font-semibold mt-6 mb-2">Restrictions</h2>
-  <div className="space-y-3">
-    <label className="block">
-      Avoid Activity (weeks):
-      <input type="number" name="restrictions.avoidActivityWeeks" value={formData.restrictions.avoidActivityWeeks} onChange={handleInputChange} className="ml-2 border px-2 py-1 rounded" />
-    </label>
-    <label className="block">
-      Lifting Limit (lbs):
-      <input type="number" name="restrictions.liftingLimitLbs" value={formData.restrictions.liftingLimitLbs} onChange={handleInputChange} className="ml-2 border px-2 py-1 rounded" />
-    </label>
+  <div className="space-y-4">
+    <div>
+      <label className="block text-sm font-medium mb-2">Avoid Activity (weeks):</label>
+      <div className="flex flex-wrap gap-2">
+        {[1, 2, 3, 4, 5, 6, 7, 8].map(week => (
+          <label key={week} className="flex items-center gap-1">
+            <input
+              type="checkbox"
+              checked={formData.restrictions.avoidActivityWeeks === week.toString()}
+              onChange={(e) => {
+                if (e.target.checked) {
+                  setFormData(prev => ({
+                    ...prev,
+                    restrictions: { ...prev.restrictions, avoidActivityWeeks: week.toString() }
+                  }));
+                }
+              }}
+              className="w-4 h-4"
+            />
+            <span className="text-sm">{week}</span>
+          </label>
+        ))}
+        <input
+          type="text"
+          name="restrictions.avoidActivityWeeks"
+          value={formData.restrictions.avoidActivityWeeks}
+          onChange={handleInputChange}
+          className="border px-2 py-1 rounded text-sm w-20"
+          placeholder="Other"
+        />
+      </div>
+    </div>
+
+    <div>
+      <label className="block text-sm font-medium mb-2">Lifting Limit (lbs):</label>
+      <div className="flex flex-wrap gap-2">
+        {[5, 10, 15, 20, 25, 30, 35, 40].map(lbs => (
+          <label key={lbs} className="flex items-center gap-1">
+            <input
+              type="checkbox"
+              checked={formData.restrictions.liftingLimitLbs === lbs.toString()}
+              onChange={(e) => {
+                if (e.target.checked) {
+                  setFormData(prev => ({
+                    ...prev,
+                    restrictions: { ...prev.restrictions, liftingLimitLbs: lbs.toString() }
+                  }));
+                }
+              }}
+              className="w-4 h-4"
+            />
+            <span className="text-sm">{lbs}</span>
+          </label>
+        ))}
+        <input
+          type="text"
+          name="restrictions.liftingLimitLbs"
+          value={formData.restrictions.liftingLimitLbs}
+          onChange={handleInputChange}
+          className="border px-2 py-1 rounded text-sm w-20"
+          placeholder="Other"
+        />
+      </div>
+    </div>
+
     <label className="block flex items-center gap-2">
       <input type="checkbox" name="restrictions.avoidProlongedSitting" checked={formData.restrictions.avoidProlongedSitting} onChange={handleInputChange} />
       Avoid Prolonged Sitting/Standing
@@ -3087,7 +3414,31 @@ const handleTendernessSpasmChange = (
 {/* Disability Duration */}
 <section>
   <h2 className="text-lg font-semibold mt-6 mb-2">Disability Duration</h2>
-  <input type="text" name="disabilityDuration" value={formData.disabilityDuration} onChange={handleInputChange} className="w-full border px-3 py-2 rounded" placeholder="e.g., 1 week, 2 weeks, 1 month" />
+  <div className="flex flex-wrap gap-2">
+    {[1, 2, 3, 4, 5, 6, 7, 8].map(week => (
+      <label key={week} className="flex items-center gap-1">
+        <input
+          type="checkbox"
+          checked={formData.disabilityDuration === week.toString()}
+          onChange={(e) => {
+            if (e.target.checked) {
+              setFormData(prev => ({ ...prev, disabilityDuration: week.toString() }));
+            }
+          }}
+          className="w-4 h-4"
+        />
+        <span className="text-sm">{week}</span>
+      </label>
+    ))}
+    <input
+      type="text"
+      name="disabilityDuration"
+      value={formData.disabilityDuration}
+      onChange={handleInputChange}
+      className="border px-2 py-1 rounded text-sm w-20"
+      placeholder="Other"
+    />
+  </div>
 </section>
 
 {/* Additional Notes */}
@@ -3103,67 +3454,73 @@ const handleTendernessSpasmChange = (
   </button>
 </div>
 
-      </form>
-      </div>  
-      </div>
+            </form>
+          </div>
 
-      <Modal
-  isOpen={modalIsOpen}
-  onRequestClose={() => setModalIsOpen(false)}
-  contentLabel="Chief Complaint Modal"
-  className="bg-white rounded-lg shadow-lg max-w-lg mx-auto mt-20 p-6"
-  overlayClassName="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-start z-50"
->
-  <h2 className="text-xl font-bold mb-4 text-gray-800">Chief Complaint Info</h2>
-
-  {isLoading ? (
-    <p className="text-gray-500">Loading...</p>
-  ) : patientData?.subjective &&
-    Object.entries(patientData.subjective).some(([_, val]) =>
-      val !== null &&
-      val !== undefined &&
-      val !== '' &&
-      !(Array.isArray(val) && val.length === 0) &&
-      !(typeof val === 'boolean' && val === false) &&
-      !(typeof val === 'object' && !Array.isArray(val) && Object.keys(val).length === 0)
-    ) ? (
-    <div className="text-sm text-gray-700 space-y-2">
-      <p>
-        <strong>Body Part(s):</strong>{' '}
-        {Array.isArray(patientData.subjective.bodyPart)
-          ? patientData.subjective.bodyPart.map(bp => `${bp.part} (${bp.side})`).join(', ')
-          : 'N/A'}
-      </p>
-      <p><strong>Severity:</strong> {patientData.subjective.severity ?? 'N/A'}</p>
-      <p><strong>Timing:</strong> {patientData.subjective.timing || 'N/A'}</p>
-      <p><strong>Context:</strong> {patientData.subjective.context || 'N/A'}</p>
-      <p><strong>Quality:</strong> {patientData.subjective.quality?.join(', ') || 'N/A'}</p>
-      <p><strong>Exacerbated By:</strong> {patientData.subjective.exacerbatedBy?.join(', ') || 'N/A'}</p>
-      <p><strong>Symptoms:</strong> {patientData.subjective.symptoms?.join(', ') || 'N/A'}</p>
-      <p><strong>Radiating To:</strong> {patientData.subjective.radiatingTo || 'N/A'}</p>
-      <p><strong>Radiating Pain:</strong> {(patientData.subjective.radiatingLeft || patientData.subjective.radiatingRight)
-        ? [patientData.subjective.radiatingLeft && 'Left', patientData.subjective.radiatingRight && 'Right'].filter(Boolean).join(', ')
-        : 'None'}
-      </p>
-      <p><strong>Sciatica:</strong> {[patientData.subjective.sciaticaLeft && 'Left', patientData.subjective.sciaticaRight && 'Right'].filter(Boolean).join(', ') || 'None'}</p>
-      <p><strong>Notes:</strong> {patientData.subjective.notes || 'N/A'}</p>
-    </div>
-  ) : (
-    <p className="text-gray-500">No subjective data found.</p>
-  )}
-
-  <div className="mt-4 flex justify-end">
-    <button
-      onClick={() => setModalIsOpen(false)}
-      className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
+    {/* Chief Complaint Modal */}
+    <Modal
+      isOpen={modalIsOpen}
+      onRequestClose={() => setModalIsOpen(false)}
+      contentLabel="Chief Complaint Modal"
+      className="bg-white rounded-lg shadow-lg max-w-lg mx-auto mt-20 p-6"
+      overlayClassName="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-start z-50"
     >
-      Close
-    </button>
-  </div>
-</Modal>
+      <h2 className="text-xl font-bold mb-4 text-gray-800">Chief Complaint Info</h2>
 
+      {isLoading ? (
+        <p className="text-gray-500">Loading...</p>
+      ) : patientData?.subjective &&
+        Object.entries(patientData.subjective).some(([_, val]) =>
+          val !== null &&
+          val !== undefined &&
+          val !== '' &&
+          !(Array.isArray(val) && val.length === 0) &&
+          !(typeof val === 'boolean' && val === false) &&
+          !(typeof val === 'object' && !Array.isArray(val) && Object.keys(val).length === 0)
+        ) ? (
+        <div className="text-sm text-gray-700 space-y-2">
+          <p>
+            <strong>Body Part(s):</strong>{' '}
+            {Array.isArray(patientData.subjective.bodyPart)
+              ? patientData.subjective.bodyPart.map(bp => `${bp.part} (${bp.side})`).join(', ')
+              : 'N/A'}
+          </p>
+          <p><strong>Severity:</strong> {patientData.subjective.severity ?? 'N/A'}</p>
+          <p><strong>Timing:</strong> {patientData.subjective.timing || 'N/A'}</p>
+          <p><strong>Context:</strong> {patientData.subjective.context || 'N/A'}</p>
+          <p><strong>Quality:</strong> {patientData.subjective.quality?.join(', ') || 'N/A'}</p>
+          <p><strong>Exacerbated By:</strong> {patientData.subjective.exacerbatedBy?.join(', ') || 'N/A'}</p>
+          <p><strong>Symptoms:</strong> {patientData.subjective.symptoms?.join(', ') || 'N/A'}</p>
+          <p><strong>Radiating To:</strong> {patientData.subjective.radiatingTo || 'N/A'}</p>
+          <p><strong>Radiating Pain:</strong> {(patientData.subjective.radiatingLeft || patientData.subjective.radiatingRight)
+            ? [patientData.subjective.radiatingLeft && 'Left', patientData.subjective.radiatingRight && 'Right'].filter(Boolean).join(', ')
+            : 'None'}
+          </p>
+          <p><strong>Sciatica:</strong> {[patientData.subjective.sciaticaLeft && 'Left', patientData.subjective.sciaticaRight && 'Right'].filter(Boolean).join(', ') || 'None'}</p>
+          <p><strong>Notes:</strong> {patientData.subjective.notes || 'N/A'}</p>
+        </div>
+      ) : (
+        <p className="text-gray-500">No subjective data found.</p>
+      )}
 
+      <div className="mt-4 flex justify-end">
+        <button
+          onClick={() => setModalIsOpen(false)}
+          className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
+        >
+          Close
+        </button>
+      </div>
+    </Modal>
 
+    {/* Diagnosis Selector Modal */}
+    <DiagnosisSelector
+      isOpen={diagnosisModalOpen}
+      onClose={() => setDiagnosisModalOpen(false)}
+      selectedDiagnoses={formData.diagnosis}
+      onDiagnosesChange={(diagnoses) => setFormData(prev => ({ ...prev, diagnosis: diagnoses }))}
+    />
+      </div>
     </div>
   );
 };

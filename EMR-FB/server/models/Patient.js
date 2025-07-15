@@ -59,7 +59,9 @@ const PatientSchema = new mongoose.Schema({
     type: String,
     enum: ['active', 'discharged'],
     default: 'active'
-  }
+  },
+  accidentDate: String,
+  accidentType: String
 }, {
   timestamps: true
 });

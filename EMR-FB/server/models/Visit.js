@@ -30,12 +30,15 @@ const Visit = mongoose.model('Visit', baseVisitSchema);
 
 const initialVisitSchema = new mongoose.Schema({
   chiefComplaint: { type: String, required: true },
+  diagnosis: [String],
 
   vitals: {
-    height: String,
+    heightFeet: String,
+    heightInches: String,
     weight: String,
     temp: String,
-    bp: String,
+    bpSystolic: String,
+    bpDiastolic: String,
     pulse: String
   },
 
@@ -64,9 +67,7 @@ const initialVisitSchema = new mongoose.Schema({
   dtr: [String],
   dtrOther: String,
 
-  dermatomes: [String],
-  dermatomesHypoArea: String,
-  dermatomesHyperArea: String,
+  dermatomes: mongoose.Schema.Types.Mixed,
 
   muscleStrength: [String],
   strength: {

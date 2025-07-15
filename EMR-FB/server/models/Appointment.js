@@ -27,7 +27,7 @@ const appointmentSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['initial', 'followup', 'discharge', 'consultation', 'other'],
+    enum: ['initial', 'followup', 'discharge', 'chiropractic', 'acupuncture', 'consultation', 'other'],
     required: true
   },
   status: {
