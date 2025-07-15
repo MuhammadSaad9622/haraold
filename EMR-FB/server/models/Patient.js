@@ -57,7 +57,7 @@ const PatientSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['active', 'discharged'],
+    enum: ['active', 'inactive', 'pending', 'discharged'],
     default: 'active'
   },
   accidentDate: String,

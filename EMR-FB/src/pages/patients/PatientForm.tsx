@@ -21,12 +21,31 @@ interface Attorney {
   address?: Omit<Address, 'country'>;
 }
 
+interface SubjectiveIntake {
+  bodyPart: string;
+  side: string;
+  headache: string[];
+  severity: string;
+  quality: string[];
+  timing: string;
+  context: string;
+  exacerbatedBy: string[];
+  symptoms: string[];
+  radiatingTo: string;
+  radiatingRight: boolean;
+  radiatingLeft: boolean;
+  sciaticaRight: boolean;
+  sciaticaLeft: boolean;
+  notes: string;
+}
+
 
 interface Patient {
   _id?: string;
   firstName: string;
   lastName: string;
   dateOfBirth: string;
+  gender: string;
   phone: string;
   email: string;
   accidentDate: string;
@@ -56,18 +75,7 @@ interface Patient {
     digestive: string[];
     emotional: string[];
     bodyPart: { part: string; side: string }[];
-    severity: string;
-    quality: string[];
-    timing: string;
-    context: string;
-    exacerbatedBy: string[];
-    symptoms: string[];
-    notes: string;
-    radiatingTo: string;
-    radiatingRight: boolean;
-    radiatingLeft: boolean;
-    sciaticaRight: boolean;
-    sciaticaLeft: boolean;
+    intakes: SubjectiveIntake[];
     tempBodyPart?: string;
     tempSide?: string;
   };
@@ -113,9 +121,74 @@ const PatientForm: React.FC = () => {
       ...prev,
       subjective: {
         ...prev.subjective,
-        bodyPart: updated // ✅ No mapping to string
+        bodyPart: updated
       }
     }));
+  };
+  
+  // Function to add a new subjective intake for a body part
+  const addSubjectiveIntake = (bodyPart: string, side: string) => {
+    setFormData(prev => ({
+      ...prev,
+      subjective: {
+        ...prev.subjective,
+        intakes: [
+          ...prev.subjective.intakes,
+          {
+            bodyPart,
+            side,
+            headache: [],
+            severity: '',
+            quality: [],
+            timing: '',
+            context: '',
+            exacerbatedBy: [],
+            symptoms: [],
+            radiatingTo: '',
+            radiatingRight: false,
+            radiatingLeft: false,
+            sciaticaRight: false,
+            sciaticaLeft: false,
+            notes: ''
+          }
+        ]
+      }
+    }));
+  };
+  
+  // Function to update a specific intake
+  const updateSubjectiveIntake = (index: number, field: keyof SubjectiveIntake, value: any) => {
+    setFormData(prev => {
+      const updatedIntakes = [...prev.subjective.intakes];
+      updatedIntakes[index] = {
+        ...updatedIntakes[index],
+        [field]: value
+      };
+      
+      return {
+        ...prev,
+        subjective: {
+          ...prev.subjective,
+          intakes: updatedIntakes
+        }
+      };
+    });
+  };
+  
+  // Function to remove a subjective intake
+  const removeSubjectiveIntake = (index: number) => {
+    setFormData(prev => {
+      const updatedIntakes = [...prev.subjective.intakes];
+      updatedIntakes.splice(index, 1);
+      
+      return {
+        ...prev,
+        subjective: {
+          ...prev.subjective,
+          intakes: updatedIntakes
+        }
+      };
+    });
   };
   
 
@@ -126,6 +199,7 @@ const PatientForm: React.FC = () => {
     firstName: '',
     lastName: '',
     dateOfBirth: '',
+    gender: '',
     phone: '',
     email: '',
     accidentDate: '',
@@ -154,18 +228,9 @@ const PatientForm: React.FC = () => {
       digestive: [],
       emotional: [],
       bodyPart: [],
-      severity: '',
-      quality: [],
-      timing: '',
-      context: '',
-      exacerbatedBy: [],
-      symptoms: [],
-      notes: '',
-      radiatingTo: '',
-      radiatingRight: false,
-      radiatingLeft: false,
-      sciaticaRight: false,
-      sciaticaLeft: false
+      intakes: [],
+      tempBodyPart: '',
+      tempSide: ''
     },
     attorney: {
       name: '',
@@ -206,19 +271,15 @@ const PatientForm: React.FC = () => {
               digestive: [],
               emotional: [],
               bodyPart: [],
-              severity: '',
-              quality: [],
-              timing: '',
-              context: '',
-              exacerbatedBy: [],
-              symptoms: [],
-              notes: '',
-              radiatingTo: '',
-              radiatingRight: false,
-              radiatingLeft: false,
-              sciaticaRight: false,
-              sciaticaLeft: false
+              intakes: [],
+              tempBodyPart: '',
+              tempSide: ''
             };
+          }
+          
+          // Convert old format to new format if needed
+          if (patientData.subjective && !patientData.subjective.intakes) {
+            patientData.subjective.intakes = [];
           }
   
           setFormData(patientData);
@@ -360,12 +421,16 @@ const PatientForm: React.FC = () => {
       cleanedData.subjective = {
         ...cleanedData.subjective,
         bodyPart: Array.isArray(cleanedData.subjective.bodyPart)
-  ? cleanedData.subjective.bodyPart.filter(
-      (bp: { part: string; side: string }) =>
-        bp.part && bp.side && bp.part.trim() !== '' && bp.side.trim() !== ''
-    )
-  : []
-
+          ? cleanedData.subjective.bodyPart.filter(
+              (bp: { part: string; side: string }) =>
+                bp.part && bp.side && bp.part.trim() !== '' && bp.side.trim() !== ''
+            )
+          : [],
+        intakes: Array.isArray(cleanedData.subjective.intakes)
+          ? cleanedData.subjective.intakes.filter(
+              (intake: SubjectiveIntake) => intake.bodyPart && intake.side
+            )
+          : []
       };
     }
     
@@ -414,6 +479,7 @@ const PatientForm: React.FC = () => {
     if (!formData.firstName?.trim()) newErrors.firstName = 'First name is required';
     if (!formData.lastName?.trim()) newErrors.lastName = 'Last name is required';
     if (!formData.dateOfBirth) newErrors.dateOfBirth = 'Date of birth is required';
+    if (!formData.gender?.trim()) newErrors.gender = 'Gender is required';
     if (!formData.email?.trim()) {
       newErrors.email = 'Email is required';
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
@@ -436,7 +502,7 @@ const PatientForm: React.FC = () => {
       
       // Add required fields that might be missing
       if (!patientData.status) {
-        patientData.status = 'Active'; // Default status
+        patientData.status = 'active'; // Default status
       }
       
       // Ensure required nested objects exist
@@ -451,18 +517,9 @@ const PatientForm: React.FC = () => {
         digestive: [],
         emotional: [],
         bodyPart: [],
-        severity: '',
-        quality: [],
-        timing: '',
-        context: '',
-        exacerbatedBy: [],
-        symptoms: [],
-        notes: '',
-        radiatingTo: '',
-        radiatingRight: false,
-        radiatingLeft: false,
-        sciaticaRight: false,
-        sciaticaLeft: false
+        intakes: [],
+        tempBodyPart: '',
+        tempSide: ''
       };
       
       const config = { 
@@ -640,6 +697,26 @@ const PatientForm: React.FC = () => {
                   } rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500`}
                 />
                 {errors.dateOfBirth && <p className="mt-1 text-sm text-red-600">{errors.dateOfBirth}</p>}
+              </div>
+              <div>
+                <label htmlFor="gender" className="block text-sm font-medium text-gray-700 mb-1">
+                  Gender*
+                </label>
+                <select
+                  id="gender"
+                  name="gender"
+                  value={formData.gender}
+                  onChange={handleChange}
+                  className={`w-full px-3 py-2 border ${
+                    errors.gender ? 'border-red-500' : 'border-gray-300'
+                  } rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500`}
+                >
+                  <option value="">Select gender</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Other">Other</option>
+                </select>
+                {errors.gender && <p className="mt-1 text-sm text-red-600">{errors.gender}</p>}
               </div>
               <div>
                 <label htmlFor="accidentDate" className="block text-sm font-medium text-gray-700 mb-1">
@@ -1142,354 +1219,330 @@ const PatientForm: React.FC = () => {
   <h2 className="text-2xl font-bold text-gray-800 mb-6">Subjective Intake</h2>
 
   {/* Affected Areas (Body Parts Dropdown + Side Dropdown + Add Button) */}
-<div className="mb-6">
-  <h3 className="text-lg font-semibold text-gray-800 mb-2">Affected Areas</h3>
+  <div className="mb-6">
+    <h3 className="text-lg font-semibold text-gray-800 mb-2">Add Body Part for Subjective Intake</h3>
 
-  {/* Dropdown Row */}
-  <div className="flex flex-wrap items-center gap-3 mb-4">
-    {/* Body Part Dropdown */}
-    <select
-      value={formData.subjective.tempBodyPart || ''}
-      onChange={(e) =>
-        setFormData((prev) => ({
-          ...prev,
-          subjective: {
-            ...prev.subjective,
-            tempBodyPart: e.target.value,
-          },
-        }))
-      }
-      className="w-48 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-    >
-      <option value="">Select Body Part</option>
-      {[
-        'C/S', 'T/S', 'L/S', 'SH', 'ELB', 'WR', 'Hand', 'Finger(s)',
-        'Hip', 'KN', 'AN', 'Foot', 'Toe(s)',
-        'L Ant/Post/Lat/Med', 'R Ant/Post/Lat/Med',
-      ].map((part) => (
-        <option key={part} value={part}>{part}</option>
-      ))}
-    </select>
-
-    {/* Side Dropdown */}
-    <select
-      value={formData.subjective.tempSide || ''}
-      onChange={(e) =>
-        setFormData((prev) => ({
-          ...prev,
-          subjective: {
-            ...prev.subjective,
-            tempSide: e.target.value,
-          },
-        }))
-      }
-      className="w-40 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-    >
-      <option value="">Select Side</option>
-      <option value="Left">Left</option>
-      <option value="Right">Right</option>
-      <option value="Bilateral">Bilateral</option>
-    </select>
-
-    {/* Add Button */}
-    <button
-      type="button"
-      onClick={() => {
-        const { tempBodyPart, tempSide } = formData.subjective;
-        if (tempBodyPart && tempSide) {
+    {/* Dropdown Row */}
+    <div className="flex flex-wrap items-center gap-3 mb-4">
+      {/* Body Part Dropdown */}
+      <select
+        value={formData.subjective.tempBodyPart || ''}
+        onChange={(e) =>
           setFormData((prev) => ({
             ...prev,
             subjective: {
               ...prev.subjective,
-              bodyPart: [
-                ...prev.subjective.bodyPart,
-                { part: tempBodyPart, side: tempSide },
-              ],
-              tempBodyPart: '',
-              tempSide: '',
+              tempBodyPart: e.target.value,
             },
-          }));
+          }))
         }
-      }}
-      className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
-    >
-      Add
-    </button>
-  </div>
-
-  {/* Display Added Body Parts */}
-  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-    {formData.subjective.bodyPart.map((bp, index) => (
-      <div
-        key={index}
-        className="flex justify-between items-center bg-gray-100 px-3 py-2 rounded-md"
+        className="w-48 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
       >
-        <span className="text-sm">
-          {bp.part} — <strong>{bp.side}</strong>
-        </span>
-        <button
-          type="button"
-          onClick={() => {
-            const updated = [...formData.subjective.bodyPart];
-            updated.splice(index, 1);
+        <option value="">Select Body Part</option>
+        {[
+          'C/S', 'T/S', 'L/S', 'SH', 'ELB', 'WR', 'Hand', 'Finger(s)',
+          'Hip', 'KN', 'AN', 'Foot', 'Toe(s)',
+          'L Ant/Post/Lat/Med', 'R Ant/Post/Lat/Med',
+        ].map((part) => (
+          <option key={part} value={part}>{part}</option>
+        ))}
+      </select>
+
+      {/* Side Dropdown */}
+      <select
+        value={formData.subjective.tempSide || ''}
+        onChange={(e) =>
+          setFormData((prev) => ({
+            ...prev,
+            subjective: {
+              ...prev.subjective,
+              tempSide: e.target.value,
+            },
+          }))
+        }
+        className="w-40 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+      >
+        <option value="">Select Side</option>
+        <option value="Left">Left</option>
+        <option value="Right">Right</option>
+        <option value="Bilateral">Bilateral</option>
+      </select>
+
+      {/* Add Button */}
+      <button
+        type="button"
+        onClick={() => {
+          const { tempBodyPart, tempSide } = formData.subjective;
+          if (tempBodyPart && tempSide) {
+            // Add to bodyPart array for tracking
             setFormData((prev) => ({
               ...prev,
               subjective: {
                 ...prev.subjective,
-                bodyPart: updated,
+                bodyPart: [
+                  ...prev.subjective.bodyPart,
+                  { part: tempBodyPart, side: tempSide },
+                ],
+                tempBodyPart: '',
+                tempSide: '',
               },
             }));
-          }}
-          className="text-red-600 hover:text-red-800"
+            
+            // Add a new subjective intake for this body part
+            addSubjectiveIntake(tempBodyPart, tempSide);
+          }
+        }}
+        className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
+      >
+        Add Body Part
+      </button>
+    </div>
+  </div>
+
+  {/* Display subjective intakes for each body part */}
+  {formData.subjective.intakes.map((intake, intakeIndex) => (
+    <div key={`intake-${intakeIndex}`} className="mb-8 p-4 border border-gray-200 rounded-lg bg-gray-50">
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="text-xl font-semibold text-blue-700">
+          {intake.bodyPart} - {intake.side}
+        </h3>
+        <button
+          type="button"
+          onClick={() => removeSubjectiveIntake(intakeIndex)}
+          className="text-red-600 hover:text-red-800 font-medium"
         >
           Remove
         </button>
       </div>
-    ))}
-  </div>
-</div>
 
+      {/* Headache */}
+      <div className="mb-6">
+        <h4 className="text-lg font-semibold text-gray-800 mb-2">Headache</h4>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
+          {["Headache", "Frontal", "Parietal", "Temporal", "Occipital", "Head contusion"].map((val) => (
+            <label key={`headache-${intakeIndex}-${val}`} className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                value={val}
+                checked={intake.headache.includes(val)}
+                onChange={(e) => {
+                  const updated = e.target.checked
+                    ? [...intake.headache, val]
+                    : intake.headache.filter(h => h !== val);
+                  updateSubjectiveIntake(intakeIndex, 'headache', updated);
+                }}
+              />
+              <span>{val}</span>
+            </label>
+          ))}
+        </div>
+      </div>
 
-  {/* Headache */}
-  <div className="mb-6">
-    <h3 className="text-lg font-semibold text-gray-800 mb-2">Headache</h3>
-    <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
-      {["Headache", "Frontal", "Parietal", "Temporal", "Occipital", "Head contusion"].map((val) => (
-        <label key={val} className="flex items-center space-x-2">
-          <input
-            type="checkbox"
-            value={val}
-            checked={formData.subjective.symptoms.includes(val)}
-            onChange={(e) => {
-              const updated = e.target.checked
-                ? [...formData.subjective.symptoms, val]
-                : formData.subjective.symptoms.filter(sym => sym !== val);
-              setFormData(prev => ({
-                ...prev,
-                subjective: { ...prev.subjective, symptoms: updated }
-              }));
-            }}
-          />
-          <span>{val}</span>
+      {/* Severity */}
+      <div className="mb-6">
+        <h4 className="text-lg font-semibold text-gray-800 mb-2">Severity</h4>
+        <div className="flex flex-wrap gap-2 text-sm">
+          {["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "Mild", "Moderate", "Severe"].map(val => (
+            <label key={`severity-${intakeIndex}-${val}`} className="flex items-center space-x-2">
+              <input
+                type="radio"
+                name={`intake-${intakeIndex}-severity`}
+                value={val}
+                checked={intake.severity === val}
+                onChange={() => updateSubjectiveIntake(intakeIndex, 'severity', val)}
+              />
+              <span>{val}</span>
+            </label>
+          ))}
+        </div>
+      </div>
+
+      {/* Quality */}
+      <div className="mb-6">
+        <h4 className="text-lg font-semibold text-gray-800 mb-2">Quality</h4>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
+          {["Achy", "Dull", "Sharp", "Stabbing", "Throbbing", "Burning", "Crushing"].map(val => (
+            <label key={`quality-${intakeIndex}-${val}`} className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                value={val}
+                checked={intake.quality.includes(val)}
+                onChange={(e) => {
+                  const updated = e.target.checked
+                    ? [...intake.quality, val]
+                    : intake.quality.filter(q => q !== val);
+                  updateSubjectiveIntake(intakeIndex, 'quality', updated);
+                }}
+              />
+              <span>{val}</span>
+            </label>
+          ))}
+        </div>
+      </div>
+
+      {/* Timing */}
+      <div className="mb-6">
+        <h4 className="text-lg font-semibold text-gray-800 mb-2">Timing</h4>
+        <div className="flex flex-wrap gap-4 text-sm">
+          {["Constant", "Frequent", "Intermittent", "Occasional", "Activity Dependent"].map(val => (
+            <label key={`timing-${intakeIndex}-${val}`} className="flex items-center space-x-2">
+              <input
+                type="radio"
+                name={`intake-${intakeIndex}-timing`}
+                value={val}
+                checked={intake.timing === val}
+                onChange={() => updateSubjectiveIntake(intakeIndex, 'timing', val)}
+              />
+              <span>{val}</span>
+            </label>
+          ))}
+        </div>
+      </div>
+
+      {/* Context */}
+      <div className="mb-6">
+        <h4 className="text-lg font-semibold text-gray-800 mb-2">Context</h4>
+        <div className="flex flex-wrap gap-4 text-sm">
+          {["New", "Improving", "Worsening", "Recurrent"].map(val => (
+            <label key={`context-${intakeIndex}-${val}`} className="flex items-center space-x-2">
+              <input
+                type="radio"
+                name={`intake-${intakeIndex}-context`}
+                value={val}
+                checked={intake.context === val}
+                onChange={() => updateSubjectiveIntake(intakeIndex, 'context', val)}
+              />
+              <span>{val}</span>
+            </label>
+          ))}
+        </div>
+      </div>
+
+      {/* Radiating To */}
+      <div className="mb-6">
+        <label htmlFor={`intake-${intakeIndex}-radiatingTo`} className="block text-sm font-medium text-gray-700 mb-1">
+          Radiating To
         </label>
-      ))}
-    </div>
-  </div>
-
-  {/* Severity */}
-  <div className="mb-6">
-    <h3 className="text-lg font-semibold text-gray-800 mb-2">Severity</h3>
-    <div className="flex flex-wrap gap-2 text-sm">
-      {["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "Mild", "Moderate", "Severe"].map(val => (
-        <label key={val} className="flex items-center space-x-2">
-          <input
-            type="radio"
-            name="subjective.severity"
-            value={val}
-            checked={formData.subjective.severity === val}
-            onChange={handleChange}
-          />
-          <span>{val}</span>
-        </label>
-      ))}
-    </div>
-  </div>
-
-  {/* Quality */}
-  <div className="mb-6">
-    <h3 className="text-lg font-semibold text-gray-800 mb-2">Quality</h3>
-    <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
-      {["Achy", "Dull", "Sharp", "Stabbing", "Throbbing", "Burning", "Crushing"].map(val => (
-        <label key={val} className="flex items-center space-x-2">
-          <input
-            type="checkbox"
-            value={val}
-            checked={formData.subjective.quality.includes(val)}
-            onChange={(e) => {
-              const updated = e.target.checked
-                ? [...formData.subjective.quality, val]
-                : formData.subjective.quality.filter(q => q !== val);
-              setFormData(prev => ({
-                ...prev,
-                subjective: { ...prev.subjective, quality: updated }
-              }));
-            }}
-          />
-          <span>{val}</span>
-        </label>
-      ))}
-    </div>
-  </div>
-
-  {/* Timing */}
-  <div className="mb-6">
-    <h3 className="text-lg font-semibold text-gray-800 mb-2">Timing</h3>
-    <div className="flex flex-wrap gap-4 text-sm">
-      {["Constant", "Frequent", "Intermittent", "Occasional", "Activity Dependent"].map(val => (
-        <label key={val} className="flex items-center space-x-2">
-          <input
-            type="radio"
-            name="subjective.timing"
-            value={val}
-            checked={formData.subjective.timing === val}
-            onChange={handleChange}
-          />
-          <span>{val}</span>
-        </label>
-      ))}
-    </div>
-  </div>
-
-  {/* Context */}
-  <div className="mb-6">
-    <h3 className="text-lg font-semibold text-gray-800 mb-2">Context</h3>
-    <div className="flex flex-wrap gap-4 text-sm">
-      {["New", "Improving", "Worsening", "Recurrent"].map(val => (
-        <label key={val} className="flex items-center space-x-2">
-          <input
-            type="radio"
-            name="subjective.context"
-            value={val}
-            checked={formData.subjective.context === val}
-            onChange={handleChange}
-          />
-          <span>{val}</span>
-        </label>
-      ))}
-    </div>
-  </div>
-
-  {/* Radiating To */}
-  <div className="mb-6">
-    <label htmlFor="subjective.radiatingTo" className="block text-sm font-medium text-gray-700 mb-1">
-      Radiating To
-    </label>
-    <input
-      type="text"
-      name="subjective.radiatingTo"
-      value={formData.subjective.radiatingTo}
-      onChange={handleChange}
-      className="w-full px-3 py-2 border border-gray-300 rounded-md"
-      placeholder="e.g., Arm, Leg, etc."
-    />
-  </div>
-
-  {/* Exacerbated By */}
-  <div className="mb-6">
-    <h3 className="text-lg font-semibold text-gray-800 mb-2">Exacerbated By</h3>
-    <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
-      {["Rest", "Increased Activity", "Prolonged Work", "School", "Stress", "Looking Up/Down", "Overhead Reach", "Sitting", "Standing", "Walking", "Twisting", "Stooping", "Bend", "Squat", "Kneel", "Lifting", "Carrying", "Serving", "Pulling/Pushing", "Grip/Grasp", "Chiro", "Physio", "Exercise", "Ice", "Heat", "Changes in the Weather"].map(val => (
-        <label key={val} className="flex items-center space-x-2">
-          <input
-            type="checkbox"
-            value={val}
-            checked={formData.subjective.exacerbatedBy.includes(val)}
-            onChange={(e) => {
-              const updated = e.target.checked
-                ? [...formData.subjective.exacerbatedBy, val]
-                : formData.subjective.exacerbatedBy.filter(v => v !== val);
-              setFormData(prev => ({
-                ...prev,
-                subjective: { ...prev.subjective, exacerbatedBy: updated }
-              }));
-            }}
-          />
-          <span>{val}</span>
-        </label>
-      ))}
-    </div>
-  </div>
-
-  {/* Signs/Symptoms */}
-  <div className="mb-6">
-    <h3 className="text-lg font-semibold text-gray-800 mb-2">Signs / Symptoms</h3>
-    <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
-      {["Tenderness", "Soreness", "Stiffness", "Tightness", "Loss of Motion", "Locking", "Grinding", "Popping", "Clicking", "Joint Instability", "Joint Redness", "Tingling", "Numbness", "Swelling", "Weakness", "Pulling", "Dropping Objects", "Dizziness", "Nausea", "Hearing Loss", "TMJ", "Double Vision", "Blurry Vision", "Photosensitivity", "Throat Pain", "Fever", "Rash", "Loss of Bowel or Bladder", "Feeling Mentally Foggy", "Feeling Slowed Down", "Difficulty Remembering", "Difficulty Concentrating"].map(val => (
-        <label key={val} className="flex items-center space-x-2">
-          <input
-            type="checkbox"
-            value={val}
-            checked={formData.subjective.symptoms.includes(val)}
-            onChange={(e) => {
-              const updated = e.target.checked
-                ? [...formData.subjective.symptoms, val]
-                : formData.subjective.symptoms.filter(s => s !== val);
-              setFormData(prev => ({
-                ...prev,
-                subjective: { ...prev.subjective, symptoms: updated }
-              }));
-            }}
-          />
-          <span>{val}</span>
-        </label>
-      ))}
-    </div>
-  </div>
-
-  {/* Radiating & Sciatica */}
-  <div className="mb-6 flex gap-12">
-    <div>
-      <h4 className="font-medium mb-1">Radiating</h4>
-      <label className="inline-flex items-center mr-4">
         <input
-          type="checkbox"
-          checked={formData.subjective.radiatingRight}
-          onChange={(e) =>
-            setFormData(prev => ({ ...prev, subjective: { ...prev.subjective, radiatingRight: e.target.checked } }))
-          }
+          type="text"
+          id={`intake-${intakeIndex}-radiatingTo`}
+          value={intake.radiatingTo}
+          onChange={(e) => updateSubjectiveIntake(intakeIndex, 'radiatingTo', e.target.value)}
+          className="w-full px-3 py-2 border border-gray-300 rounded-md"
+          placeholder="e.g., Arm, Leg, etc."
         />
-        <span className="ml-2">R</span>
-      </label>
-      <label className="inline-flex items-center">
-        <input
-          type="checkbox"
-          checked={formData.subjective.radiatingLeft}
-          onChange={(e) =>
-            setFormData(prev => ({ ...prev, subjective: { ...prev.subjective, radiatingLeft: e.target.checked } }))
-          }
-        />
-        <span className="ml-2">L</span>
-      </label>
-    </div>
-    <div>
-      <h4 className="font-medium mb-1">Sciatica</h4>
-      <label className="inline-flex items-center mr-4">
-        <input
-          type="checkbox"
-          checked={formData.subjective.sciaticaRight}
-          onChange={(e) =>
-            setFormData(prev => ({ ...prev, subjective: { ...prev.subjective, sciaticaRight: e.target.checked } }))
-          }
-        />
-        <span className="ml-2">R</span>
-      </label>
-      <label className="inline-flex items-center">
-        <input
-          type="checkbox"
-          checked={formData.subjective.sciaticaLeft}
-          onChange={(e) =>
-            setFormData(prev => ({ ...prev, subjective: { ...prev.subjective, sciaticaLeft: e.target.checked } }))
-          }
-        />
-        <span className="ml-2">L</span>
-      </label>
-    </div>
-  </div>
+      </div>
 
-  {/* Notes */}
-  <div className="mb-6">
-    <label htmlFor="subjective.notes" className="block text-sm font-medium text-gray-700 mb-1">
-      Notes
-    </label>
-    <textarea
-      name="subjective.notes"
-      id="subjective.notes"
-      rows={3}
-      value={formData.subjective.notes}
-      onChange={handleChange}
-      className="w-full border border-gray-300 rounded-md px-3 py-2"
-    ></textarea>
-  </div>
+      {/* Exacerbated By */}
+      <div className="mb-6">
+        <h4 className="text-lg font-semibold text-gray-800 mb-2">Exacerbated By</h4>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
+          {["Rest", "Increased Activity", "Prolonged Work", "School", "Stress", "Looking Up/Down", "Overhead Reach", "Sitting", "Standing", "Walking", "Twisting", "Stooping", "Bend", "Squat", "Kneel", "Lifting", "Carrying", "Serving", "Pulling/Pushing", "Grip/Grasp", "Chiro", "Physio", "Exercise", "Ice", "Heat", "Changes in the Weather"].map(val => (
+            <label key={`exacerbated-${intakeIndex}-${val}`} className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                value={val}
+                checked={intake.exacerbatedBy.includes(val)}
+                onChange={(e) => {
+                  const updated = e.target.checked
+                    ? [...intake.exacerbatedBy, val]
+                    : intake.exacerbatedBy.filter(v => v !== val);
+                  updateSubjectiveIntake(intakeIndex, 'exacerbatedBy', updated);
+                }}
+              />
+              <span>{val}</span>
+            </label>
+          ))}
+        </div>
+      </div>
+
+      {/* Signs/Symptoms */}
+      <div className="mb-6">
+        <h4 className="text-lg font-semibold text-gray-800 mb-2">Signs / Symptoms</h4>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
+          {["Tenderness", "Soreness", "Stiffness", "Tightness", "Loss of Motion", "Locking", "Grinding", "Popping", "Clicking", "Joint Instability", "Joint Redness", "Tingling", "Numbness", "Swelling", "Weakness", "Pulling", "Dropping Objects", "Dizziness", "Nausea", "Hearing Loss", "TMJ", "Double Vision", "Blurry Vision", "Photosensitivity", "Throat Pain", "Fever", "Rash", "Loss of Bowel or Bladder", "Feeling Mentally Foggy", "Feeling Slowed Down", "Difficulty Remembering", "Difficulty Concentrating"].map(val => (
+            <label key={`symptoms-${intakeIndex}-${val}`} className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                value={val}
+                checked={intake.symptoms.includes(val)}
+                onChange={(e) => {
+                  const updated = e.target.checked
+                    ? [...intake.symptoms, val]
+                    : intake.symptoms.filter(s => s !== val);
+                  updateSubjectiveIntake(intakeIndex, 'symptoms', updated);
+                }}
+              />
+              <span>{val}</span>
+            </label>
+          ))}
+        </div>
+      </div>
+
+      {/* Radiating & Sciatica */}
+      <div className="mb-6 flex gap-12">
+        <div>
+          <h4 className="font-medium mb-1">Radiating</h4>
+          <label className="inline-flex items-center mr-4">
+            <input
+              type="checkbox"
+              checked={intake.radiatingRight}
+              onChange={(e) => updateSubjectiveIntake(intakeIndex, 'radiatingRight', e.target.checked)}
+            />
+            <span className="ml-2">R</span>
+          </label>
+          <label className="inline-flex items-center">
+            <input
+              type="checkbox"
+              checked={intake.radiatingLeft}
+              onChange={(e) => updateSubjectiveIntake(intakeIndex, 'radiatingLeft', e.target.checked)}
+            />
+            <span className="ml-2">L</span>
+          </label>
+        </div>
+        <div>
+          <h4 className="font-medium mb-1">Sciatica</h4>
+          <label className="inline-flex items-center mr-4">
+            <input
+              type="checkbox"
+              checked={intake.sciaticaRight}
+              onChange={(e) => updateSubjectiveIntake(intakeIndex, 'sciaticaRight', e.target.checked)}
+            />
+            <span className="ml-2">R</span>
+          </label>
+          <label className="inline-flex items-center">
+            <input
+              type="checkbox"
+              checked={intake.sciaticaLeft}
+              onChange={(e) => updateSubjectiveIntake(intakeIndex, 'sciaticaLeft', e.target.checked)}
+            />
+            <span className="ml-2">L</span>
+          </label>
+        </div>
+      </div>
+
+      {/* Notes */}
+      <div className="mb-6">
+        <label htmlFor={`intake-${intakeIndex}-notes`} className="block text-sm font-medium text-gray-700 mb-1">
+          Notes
+        </label>
+        <textarea
+          id={`intake-${intakeIndex}-notes`}
+          rows={3}
+          value={intake.notes}
+          onChange={(e) => updateSubjectiveIntake(intakeIndex, 'notes', e.target.value)}
+          className="w-full border border-gray-300 rounded-md px-3 py-2"
+        ></textarea>
+      </div>
+    </div>
+  ))}
+
+  {/* Show message if no body parts added */}
+  {formData.subjective.intakes.length === 0 && (
+    <div className="text-center p-6 bg-gray-50 rounded-lg border border-gray-200">
+      <p className="text-gray-500">No body parts added yet. Use the form above to add body parts for subjective intake.</p>
+    </div>
+  )}
 </div>
 
 <div className="mt-8 flex justify-end">

@@ -9,6 +9,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import BillingList from '../billing/BillingList';
+import Modal from 'react-modal';
 import { 
   ArrowLeft, 
   Edit, 
@@ -93,6 +94,8 @@ interface Patient {
   gender: string;
   email: string;
   phone: string;
+  accidentDate?: string;
+  accidentType?: string;
   address: {
     street: string;
     city: string;
@@ -127,19 +130,20 @@ interface Patient {
       part: string;
       side: string;
     }[];
+    intakes?: SubjectiveIntake[];
   };
   attorney?: {
     name: string;
     firm: string;
     phone: string;
     email: string;
-    caseNumber?: string; // <-- Add this
+    caseNumber?: string;
     address: {
       street: string;
       city: string;
       state: string;
       zipCode: string;
-      country?: string; // <-- Optional, based on usage
+      country?: string;
     };
   };
   
@@ -154,6 +158,24 @@ interface Patient {
   updatedAt: string;
   maritalStatus?: string;
   injuryDate?: string;
+}
+
+interface SubjectiveIntake {
+  bodyPart: string;
+  side: string;
+  headache: string[];
+  severity: string;
+  quality: string[];
+  timing: string;
+  context: string;
+  exacerbatedBy: string[];
+  symptoms: string[];
+  radiatingTo: string;
+  radiatingRight: boolean;
+  radiatingLeft: boolean;
+  sciaticaRight: boolean;
+  sciaticaLeft: boolean;
+  notes: string;
 }
 
 interface Visit {
@@ -336,6 +358,9 @@ const PatientDetails: React.FC<{}> = () => {
   };
 
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
+  const [modalIsOpen, setModalIsOpen] = useState(false);
+
+  Modal.setAppElement('#root');
 
   useEffect(() => {
     const fetchPatientData = async () => {
@@ -413,23 +438,25 @@ const PatientDetails: React.FC<{}> = () => {
     doc.text(`Status: ${patient.status}`, 20, 60);
     doc.text(`Email: ${patient.email}`, 20, 70);
     doc.text(`Phone: ${patient.phone}`, 20, 80);
+    doc.text(`Date of Accident: ${patient.accidentDate ? new Date(patient.accidentDate).toLocaleDateString() : 'N/A'}`, 20, 90);
+    doc.text(`Type of Accident: ${patient.accidentType || 'N/A'}`, 20, 100);
     
     // Add address
-    doc.text('Address:', 20, 95);
-    if (patient.address.street) doc.text(`${patient.address.street}`, 30, 105);
+    doc.text('Address:', 20, 115);
+    if (patient.address.street) doc.text(`${patient.address.street}`, 30, 125);
     if (patient.address.city || patient.address.state) {
-      doc.text(`${patient.address.city}, ${patient.address.state} ${patient.address.zipCode}`, 30, 115);
+      doc.text(`${patient.address.city}, ${patient.address.state} ${patient.address.zipCode}`, 30, 135);
     }
-    if (patient.address.country) doc.text(`${patient.address.country}`, 30, 125);
+    if (patient.address.country) doc.text(`${patient.address.country}`, 30, 145);
     
     // Add medical history
-    doc.text('Medical History:', 20, 140);
+    doc.text('Medical History:', 20, 160);
     
     // Allergies
     if (patient.medicalHistory.allergies.length > 0) {
-      doc.text('Allergies:', 30, 150);
+      doc.text('Allergies:', 30, 170);
       patient.medicalHistory.allergies.forEach((allergy, index) => {
-        if (allergy) doc.text(`- ${allergy}`, 40, 160 + (index * 10));
+        if (allergy) doc.text(`- ${allergy}`, 40, 180 + (index * 10));
       });
     }
     
@@ -459,7 +486,7 @@ const PatientDetails: React.FC<{}> = () => {
     };
   
     const addHeaderAndFooter = (doc: any, pageNumber: number, totalPages: number) => {
-      doc.setFillColor(...colors.primary);
+      doc.setFillColor(colors.primary[0], colors.primary[1], colors.primary[2]);
       doc.rect(0, 0, pageWidth, 25, 'F');
       doc.addImage(logoBase64, 'PNG', 15, 8, 12, 12);
       doc.setFontSize(14);
@@ -467,13 +494,13 @@ const PatientDetails: React.FC<{}> = () => {
       doc.setFont('helvetica', 'bold');
       doc.text('The Wellness Studio', 32, 18);
       doc.setFontSize(12);
-      doc.setTextColor(...colors.warning);
+      doc.setTextColor(colors.warning[0], colors.warning[1], colors.warning[2]);
       doc.text('The Wellness Studio', pageWidth - 15, 18, { align: 'right' });
-      doc.setFillColor(...colors.lightGray);
+      doc.setFillColor(colors.lightGray[0], colors.lightGray[1], colors.lightGray[2]);
       doc.rect(0, 280, pageWidth, 20, 'F');
       const footerText = `The Wellness Studio • 3711 Long Beach Blvd., Suite 200, Long Beach, CA, 90807 • Tel: (562) 980-0555  Page ${pageNumber} of ${totalPages}`;
       doc.setFontSize(9);
-      doc.setTextColor(...colors.darkGray);
+      doc.setTextColor(colors.darkGray[0], colors.darkGray[1], colors.darkGray[2]);
       doc.text(footerText, pageWidth / 2, 290, { align: 'center' });
     };
   
@@ -487,7 +514,7 @@ const PatientDetails: React.FC<{}> = () => {
   
       // PATIENT INFO
       doc.setFontSize(14);
-      doc.setTextColor(...colors.primary);
+      doc.setTextColor(colors.primary[0], colors.primary[1], colors.primary[2]);
       doc.setFont('helvetica', 'bold');
       doc.text('PATIENT INFORMATION', pageWidth / 2, y, { align: 'center' });
       y += 10;
@@ -496,7 +523,7 @@ const PatientDetails: React.FC<{}> = () => {
         startY: y,
         styles: { fontSize: 10, cellPadding: 4 },
         headStyles: {
-          fillColor: colors.primary,
+          fillColor: [colors.primary[0], colors.primary[1], colors.primary[2]],
           textColor: 255,
           fontStyle: 'bold',
           halign: 'center'
@@ -537,7 +564,7 @@ const PatientDetails: React.FC<{}> = () => {
         }
         y += 10;
   
-        doc.setFillColor(...color);
+        doc.setFillColor(color[0], color[1], color[2]);
         doc.roundedRect(margin - 2, y - 6, pageWidth - margin * 2 + 4, 10, 3, 3, 'F');
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(12);
@@ -653,7 +680,7 @@ matches.forEach(([_, section, content]) => {
       doc.text('Treating Provider', margin, y);
   
       // PAGINATION
-      const totalPages = doc.internal.getNumberOfPages();
+      const totalPages = (doc as any).internal.getNumberOfPages();
       for (let i = 1; i <= totalPages; i++) {
         doc.setPage(i);
         addHeaderAndFooter(doc, i, totalPages);
@@ -798,6 +825,22 @@ matches.forEach(([_, section, content]) => {
             <Download className="mr-2 h-4 w-4" />
             Export PDF
           </button>
+          <button
+            onClick={async () => {
+              // Refresh patient data before opening modal
+              try {
+                const patientResponse = await axios.get(`http://localhost:5000/api/patients/${id}`);
+                setPatient(patientResponse.data);
+              } catch (error) {
+                console.error('Error refreshing patient data:', error);
+              }
+              setModalIsOpen(true);
+            }}
+            className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          >
+            <FileText className="mr-2 h-4 w-4" />
+            View Chief Complaint
+          </button>
         </div>
       </div>
 
@@ -900,6 +943,18 @@ matches.forEach(([_, section, content]) => {
                       <dt className="text-sm font-medium text-gray-500">Patient Since</dt>
                       <dd className="mt-1 text-sm text-gray-900">
                         {new Date(patient.createdAt).toLocaleDateString()}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-sm font-medium text-gray-500">Date of Accident</dt>
+                      <dd className="mt-1 text-sm text-gray-900">
+                        {patient.accidentDate ? new Date(patient.accidentDate).toLocaleDateString() : 'Not provided'}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-sm font-medium text-gray-500">Type of Accident</dt>
+                      <dd className="mt-1 text-sm text-gray-900">
+                        {patient.accidentType || 'Not provided'}
                       </dd>
                     </div>
                   </dl>
@@ -1020,88 +1075,206 @@ matches.forEach(([_, section, content]) => {
     <h2 className="text-lg font-medium text-gray-900">Subjective Intake</h2>
   </div>
   <div className="px-6 py-4">
-    <dl className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-6">
+    {/* Display body parts summary */}
+    <div className="mb-4">
+      <h3 className="text-md font-medium text-gray-800 mb-2">Body Parts</h3>
+      <div className="text-sm text-gray-900">
+        {patient.subjective?.bodyPart?.length
+          ? patient.subjective.bodyPart.map(bp => `${bp.part} (${bp.side})`).join(', ')
+          : 'No body parts recorded'}
+      </div>
+    </div>
 
-    <div className="md:col-span-2">
-        <dt className="text-sm font-medium text-gray-500">Body Parts</dt>
-        <dd className="mt-1 text-sm text-gray-900">
-          {patient.subjective?.bodyPart?.length
-            ? patient.subjective.bodyPart.map(bp => `${bp.part} (${bp.side})`).join(', ')
-            : 'N/A'}
-        </dd>
+    {/* Display detailed subjective intakes for each body part */}
+    {patient.subjective?.intakes && patient.subjective.intakes.length > 0 ? (
+      <div className="space-y-6">
+        {patient.subjective.intakes!.map((intake, index) => (
+          <div key={index} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+            <h3 className="text-md font-semibold text-blue-700 mb-3">
+              {intake.bodyPart} - {intake.side}
+            </h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-4">
+              {/* Headache */}
+              {intake.headache?.length > 0 && (
+                <div>
+                  <dt className="text-sm font-medium text-gray-500">Headache</dt>
+                  <dd className="mt-1 text-sm text-gray-900">{intake.headache.join(', ')}</dd>
+                </div>
+              )}
+              
+              {/* Severity */}
+              {intake.severity && (
+                <div>
+                  <dt className="text-sm font-medium text-gray-500">Severity</dt>
+                  <dd className="mt-1 text-sm text-gray-900">{intake.severity}</dd>
+                </div>
+              )}
+              
+              {/* Quality */}
+              {intake.quality?.length > 0 && (
+                <div>
+                  <dt className="text-sm font-medium text-gray-500">Quality</dt>
+                  <dd className="mt-1 text-sm text-gray-900">{intake.quality.join(', ')}</dd>
+                </div>
+              )}
+              
+              {/* Timing */}
+              {intake.timing && (
+                <div>
+                  <dt className="text-sm font-medium text-gray-500">Timing</dt>
+                  <dd className="mt-1 text-sm text-gray-900">{intake.timing}</dd>
+                </div>
+              )}
+              
+              {/* Context */}
+              {intake.context && (
+                <div>
+                  <dt className="text-sm font-medium text-gray-500">Context</dt>
+                  <dd className="mt-1 text-sm text-gray-900">{intake.context}</dd>
+                </div>
+              )}
+              
+              {/* Exacerbated By */}
+              {intake.exacerbatedBy?.length > 0 && (
+                <div>
+                  <dt className="text-sm font-medium text-gray-500">Exacerbated By</dt>
+                  <dd className="mt-1 text-sm text-gray-900">{intake.exacerbatedBy.join(', ')}</dd>
+                </div>
+              )}
+              
+              {/* Symptoms */}
+              {intake.symptoms?.length > 0 && (
+                <div>
+                  <dt className="text-sm font-medium text-gray-500">Symptoms</dt>
+                  <dd className="mt-1 text-sm text-gray-900">{intake.symptoms.join(', ')}</dd>
+                </div>
+              )}
+              
+              {/* Radiating To */}
+              {intake.radiatingTo && (
+                <div>
+                  <dt className="text-sm font-medium text-gray-500">Radiating To</dt>
+                  <dd className="mt-1 text-sm text-gray-900">{intake.radiatingTo}</dd>
+                </div>
+              )}
+              
+              {/* Radiating Pain */}
+              <div>
+                <dt className="text-sm font-medium text-gray-500">Radiating Pain</dt>
+                <dd className="mt-1 text-sm text-gray-900">
+                  {[
+                    intake.radiatingLeft && 'Left',
+                    intake.radiatingRight && 'Right',
+                  ].filter(Boolean).join(', ') || 'None'}
+                </dd>
+              </div>
+              
+              {/* Sciatica */}
+              <div>
+                <dt className="text-sm font-medium text-gray-500">Sciatica</dt>
+                <dd className="mt-1 text-sm text-gray-900">
+                  {[
+                    intake.sciaticaLeft && 'Left',
+                    intake.sciaticaRight && 'Right',
+                  ].filter(Boolean).join(', ') || 'None'}
+                </dd>
+              </div>
+              
+              {/* Notes */}
+              {intake.notes && (
+                <div className="md:col-span-2">
+                  <dt className="text-sm font-medium text-gray-500">Notes</dt>
+                  <dd className="mt-1 text-sm text-gray-900">{intake.notes}</dd>
+                </div>
+              )}
+            </div>
+          </div>
+        ))}
       </div>
-      <div>
-        <dt className="text-sm font-medium text-gray-500">Severity</dt>
-        <dd className="mt-1 text-sm text-gray-900">{patient.subjective?.severity || 'N/A'}</dd>
-      </div>
+    ) : (
+      <p className="text-sm text-gray-500">No subjective intake data recorded</p>
+    )}
 
-      <div>
-        <dt className="text-sm font-medium text-gray-500">Timing</dt>
-        <dd className="mt-1 text-sm text-gray-900">{patient.subjective?.timing || 'N/A'}</dd>
-      </div>
+    {/* Legacy subjective data display for backward compatibility */}
+    {(!patient.subjective?.intakes || patient.subjective.intakes.length === 0) && (
+      <div className="mt-4 pt-4 border-t border-gray-200">
+        <h3 className="text-md font-medium text-gray-800 mb-3">Legacy Subjective Data</h3>
+        <dl className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-4">
+          <div>
+            <dt className="text-sm font-medium text-gray-500">Severity</dt>
+            <dd className="mt-1 text-sm text-gray-900">{patient.subjective?.severity || 'N/A'}</dd>
+          </div>
 
-      <div>
-        <dt className="text-sm font-medium text-gray-500">Context</dt>
-        <dd className="mt-1 text-sm text-gray-900">{patient.subjective?.context || 'N/A'}</dd>
-      </div>
+          <div>
+            <dt className="text-sm font-medium text-gray-500">Timing</dt>
+            <dd className="mt-1 text-sm text-gray-900">{patient.subjective?.timing || 'N/A'}</dd>
+          </div>
 
-      <div>
-        <dt className="text-sm font-medium text-gray-500">Quality</dt>
-        <dd className="mt-1 text-sm text-gray-900">
-          {patient.subjective?.quality?.length
-            ? patient.subjective.quality.join(', ')
-            : 'N/A'}
-        </dd>
-      </div>
+          <div>
+            <dt className="text-sm font-medium text-gray-500">Context</dt>
+            <dd className="mt-1 text-sm text-gray-900">{patient.subjective?.context || 'N/A'}</dd>
+          </div>
 
-      <div>
-        <dt className="text-sm font-medium text-gray-500">Exacerbated By</dt>
-        <dd className="mt-1 text-sm text-gray-900">
-          {patient.subjective?.exacerbatedBy?.length
-            ? patient.subjective.exacerbatedBy.join(', ')
-            : 'N/A'}
-        </dd>
-      </div>
+          <div>
+            <dt className="text-sm font-medium text-gray-500">Quality</dt>
+            <dd className="mt-1 text-sm text-gray-900">
+              {patient.subjective?.quality?.length
+                ? patient.subjective.quality.join(', ')
+                : 'N/A'}
+            </dd>
+          </div>
 
-      <div>
-        <dt className="text-sm font-medium text-gray-500">Symptoms</dt>
-        <dd className="mt-1 text-sm text-gray-900">
-          {patient.subjective?.symptoms?.length
-            ? patient.subjective.symptoms.join(', ')
-            : 'N/A'}
-        </dd>
-      </div>
+          <div>
+            <dt className="text-sm font-medium text-gray-500">Exacerbated By</dt>
+            <dd className="mt-1 text-sm text-gray-900">
+              {patient.subjective?.exacerbatedBy?.length
+                ? patient.subjective.exacerbatedBy.join(', ')
+                : 'N/A'}
+            </dd>
+          </div>
 
-      <div>
-        <dt className="text-sm font-medium text-gray-500">Radiating To</dt>
-        <dd className="mt-1 text-sm text-gray-900">{patient.subjective?.radiatingTo || 'N/A'}</dd>
-      </div>
+          <div>
+            <dt className="text-sm font-medium text-gray-500">Symptoms</dt>
+            <dd className="mt-1 text-sm text-gray-900">
+              {patient.subjective?.symptoms?.length
+                ? patient.subjective.symptoms.join(', ')
+                : 'N/A'}
+            </dd>
+          </div>
 
-      <div>
-        <dt className="text-sm font-medium text-gray-500">Radiating Pain</dt>
-        <dd className="mt-1 text-sm text-gray-900">
-          {[
-            patient.subjective?.radiatingLeft && 'Left',
-            patient.subjective?.radiatingRight && 'Right',
-          ].filter(Boolean).join(', ') || 'None'}
-        </dd>
-      </div>
+          <div>
+            <dt className="text-sm font-medium text-gray-500">Radiating To</dt>
+            <dd className="mt-1 text-sm text-gray-900">{patient.subjective?.radiatingTo || 'N/A'}</dd>
+          </div>
 
-      <div>
-        <dt className="text-sm font-medium text-gray-500">Sciatica</dt>
-        <dd className="mt-1 text-sm text-gray-900">
-          {[
-            patient.subjective?.sciaticaLeft && 'Left',
-            patient.subjective?.sciaticaRight && 'Right',
-          ].filter(Boolean).join(', ') || 'None'}
-        </dd>
-      </div>
+          <div>
+            <dt className="text-sm font-medium text-gray-500">Radiating Pain</dt>
+            <dd className="mt-1 text-sm text-gray-900">
+              {[
+                patient.subjective?.radiatingLeft && 'Left',
+                patient.subjective?.radiatingRight && 'Right',
+              ].filter(Boolean).join(', ') || 'None'}
+            </dd>
+          </div>
 
-      <div className="md:col-span-2">
-        <dt className="text-sm font-medium text-gray-500">Notes</dt>
-        <dd className="mt-1 text-sm text-gray-900 whitespace-pre-wrap">{patient.subjective?.notes || 'N/A'}</dd>
+          <div>
+            <dt className="text-sm font-medium text-gray-500">Sciatica</dt>
+            <dd className="mt-1 text-sm text-gray-900">
+              {[
+                patient.subjective?.sciaticaLeft && 'Left',
+                patient.subjective?.sciaticaRight && 'Right',
+              ].filter(Boolean).join(', ') || 'None'}
+            </dd>
+          </div>
+
+          <div className="md:col-span-2">
+            <dt className="text-sm font-medium text-gray-500">Notes</dt>
+            <dd className="mt-1 text-sm text-gray-900 whitespace-pre-wrap">{patient.subjective?.notes || 'N/A'}</dd>
+          </div>
+        </dl>
       </div>
-    </dl>
+    )}
   </div>
 </div>
 
@@ -1151,12 +1324,24 @@ matches.forEach(([_, section, content]) => {
           )}
         </dd>
       </div>
-      <div>
-        <dt className="text-sm font-medium text-gray-500">Case Number</dt>
-        <dd className="mt-1 text-sm text-gray-900">
-          {patient.attorney?.caseNumber || 'Not provided'}
-        </dd>
-      </div>
+                          <div>
+                      <dt className="text-sm font-medium text-gray-500">Case Number</dt>
+                      <dd className="mt-1 text-sm text-gray-900">
+                        {patient.attorney?.caseNumber || 'Not provided'}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-sm font-medium text-gray-500">Marital Status</dt>
+                      <dd className="mt-1 text-sm text-gray-900">
+                        {patient.maritalStatus || 'Not provided'}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-sm font-medium text-gray-500">Injury Date</dt>
+                      <dd className="mt-1 text-sm text-gray-900">
+                        {patient.injuryDate ? new Date(patient.injuryDate).toLocaleDateString() : 'Not provided'}
+                      </dd>
+                    </div>
     </dl>
   </div>
 </div>
@@ -1486,6 +1671,170 @@ matches.forEach(([_, section, content]) => {
           </div>
         )}
       </div>
+
+      {/* Chief Complaint Modal */}
+      <Modal
+        isOpen={modalIsOpen}
+        onRequestClose={() => setModalIsOpen(false)}
+        contentLabel="Chief Complaint Modal"
+        className="bg-white rounded-lg shadow-lg max-w-lg mx-auto mt-20 p-0 overflow-hidden"
+        overlayClassName="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-start z-50"
+      >
+        {/* Header with gradient background */}
+        <div className="bg-gradient-to-r from-blue-600 to-indigo-700 p-4">
+          <h2 className="text-xl font-bold text-white">Chief Complaint Info</h2>
+        </div>
+
+        {isLoading ? (
+          <div className="p-6 flex justify-center items-center h-40">
+            <div className="animate-pulse flex space-x-4">
+              <div className="rounded-full bg-slate-200 h-10 w-10"></div>
+              <div className="flex-1 space-y-6 py-1">
+                <div className="h-2 bg-slate-200 rounded"></div>
+                <div className="space-y-3">
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="h-2 bg-slate-200 rounded col-span-2"></div>
+                    <div className="h-2 bg-slate-200 rounded col-span-1"></div>
+                  </div>
+                  <div className="h-2 bg-slate-200 rounded"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : patient?.subjective ? (
+          <div className="p-6">
+            {/* Main content area */}
+            <div className="text-sm text-gray-700 space-y-4 max-h-[60vh] overflow-y-auto pr-2">
+              {/* Body Part section */}
+              <div className="bg-blue-50 p-3 rounded-lg border-l-4 border-blue-500 mb-4">
+                <h3 className="text-md font-semibold text-blue-700 mb-2">Body Part Information</h3>
+                <div className="font-medium">
+                  {patient.subjective.bodyPart && Array.isArray(patient.subjective.bodyPart) && patient.subjective.bodyPart.length > 0 ? 
+                    patient.subjective.bodyPart.map((bp, index) => 
+                      typeof bp === 'object' && bp.part ? 
+                        `${bp.part}${bp.side ? ` (${bp.side})` : ''}` : 
+                        String(bp)
+                    ).join(', ') : 
+                    'No body parts specified'
+                  }
+                </div>
+              </div>
+
+              {/* Basic Subjective Data */}
+              <div className="bg-green-50 p-3 rounded-lg border-l-4 border-green-500 mb-4">
+                <h3 className="text-md font-semibold text-green-700 mb-2">Basic Information</h3>
+                <div className="bg-white p-3 rounded shadow-sm space-y-2">
+                  <div><strong>Full Name:</strong> {patient.subjective.fullName || 'N/A'}</div>
+                  <div><strong>Date:</strong> {patient.subjective.date || 'N/A'}</div>
+                  <div><strong>Severity:</strong> {patient.subjective.severity || 'N/A'}</div>
+                  <div><strong>Timing:</strong> {patient.subjective.timing || 'N/A'}</div>
+                  <div><strong>Context:</strong> {patient.subjective.context || 'N/A'}</div>
+                  <div><strong>Notes:</strong> {patient.subjective.notes || 'N/A'}</div>
+                </div>
+              </div>
+
+              {/* Symptoms and Quality */}
+              <div className="bg-purple-50 p-3 rounded-lg border-l-4 border-purple-500 mb-4">
+                <h3 className="text-md font-semibold text-purple-700 mb-2">Symptoms & Quality</h3>
+                <div className="bg-white p-3 rounded shadow-sm space-y-2">
+                  <div><strong>Quality:</strong> {patient.subjective.quality && Array.isArray(patient.subjective.quality) ? patient.subjective.quality.join(', ') : 'N/A'}</div>
+                  <div><strong>Exacerbated By:</strong> {patient.subjective.exacerbatedBy && Array.isArray(patient.subjective.exacerbatedBy) ? patient.subjective.exacerbatedBy.join(', ') : 'N/A'}</div>
+                  <div><strong>Symptoms:</strong> {patient.subjective.symptoms && Array.isArray(patient.subjective.symptoms) ? patient.subjective.symptoms.join(', ') : 'N/A'}</div>
+                  <div><strong>Radiating To:</strong> {patient.subjective.radiatingTo || 'N/A'}</div>
+                  <div><strong>Radiating Pain:</strong> {
+                    (patient.subjective.radiatingLeft || patient.subjective.radiatingRight) ? 
+                      [patient.subjective.radiatingLeft && 'Left', patient.subjective.radiatingRight && 'Right'].filter(Boolean).join(', ') : 
+                      'None'
+                  }</div>
+                  <div><strong>Sciatica:</strong> {
+                    (patient.subjective.sciaticaLeft || patient.subjective.sciaticaRight) ? 
+                      [patient.subjective.sciaticaLeft && 'Left', patient.subjective.sciaticaRight && 'Right'].filter(Boolean).join(', ') : 
+                      'None'
+                  }</div>
+                </div>
+              </div>
+
+              {/* Detailed Intakes */}
+              {patient.subjective.intakes && Array.isArray(patient.subjective.intakes) && patient.subjective.intakes.length > 0 && (
+                <div className="bg-orange-50 p-3 rounded-lg border-l-4 border-orange-500 mb-4">
+                  <h3 className="text-md font-semibold text-orange-700 mb-2">Detailed Intakes</h3>
+                  <div className="space-y-3">
+                    {patient.subjective.intakes.map((intake, index) => (
+                      <div key={index} className="bg-white p-3 rounded shadow-sm border-l-4 border-orange-300">
+                        <h4 className="font-semibold text-orange-600 mb-2">
+                          {intake.bodyPart} - {intake.side}
+                        </h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                          <div><strong>Severity:</strong> {intake.severity || 'N/A'}</div>
+                          <div><strong>Timing:</strong> {intake.timing || 'N/A'}</div>
+                          <div><strong>Context:</strong> {intake.context || 'N/A'}</div>
+                          <div><strong>Quality:</strong> {intake.quality && Array.isArray(intake.quality) ? intake.quality.join(', ') : 'N/A'}</div>
+                          <div><strong>Exacerbated By:</strong> {intake.exacerbatedBy && Array.isArray(intake.exacerbatedBy) ? intake.exacerbatedBy.join(', ') : 'N/A'}</div>
+                          <div><strong>Symptoms:</strong> {intake.symptoms && Array.isArray(intake.symptoms) ? intake.symptoms.join(', ') : 'N/A'}</div>
+                          <div><strong>Radiating To:</strong> {intake.radiatingTo || 'N/A'}</div>
+                          <div><strong>Radiating Pain:</strong> {
+                            (intake.radiatingLeft || intake.radiatingRight) ? 
+                              [intake.radiatingLeft && 'Left', intake.radiatingRight && 'Right'].filter(Boolean).join(', ') : 
+                              'None'
+                          }</div>
+                          <div><strong>Sciatica:</strong> {
+                            (intake.sciaticaLeft || intake.sciaticaRight) ? 
+                              [intake.sciaticaLeft && 'Left', intake.sciaticaRight && 'Right'].filter(Boolean).join(', ') : 
+                              'None'
+                          }</div>
+                          <div className="md:col-span-2"><strong>Notes:</strong> {intake.notes || 'N/A'}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Raw Data for Debugging */}
+              <div className="bg-gray-50 p-3 rounded-lg border-l-4 border-gray-500 mb-4">
+                <h3 className="text-md font-semibold text-gray-700 mb-2">Raw Subjective Data</h3>
+                <div className="bg-white p-3 rounded shadow-sm">
+                  <pre className="text-xs overflow-auto max-h-32">
+                    {JSON.stringify(patient.subjective, null, 2)}
+                  </pre>
+                </div>
+                <div className="mt-2 text-xs text-gray-600">
+                  <p><strong>Has intakes array:</strong> {patient.subjective.intakes ? 'Yes' : 'No'}</p>
+                  <p><strong>Intakes length:</strong> {patient.subjective.intakes?.length || 0}</p>
+                  <p><strong>Has bodyPart array:</strong> {patient.subjective.bodyPart ? 'Yes' : 'No'}</p>
+                  <p><strong>BodyPart length:</strong> {patient.subjective.bodyPart?.length || 0}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="p-6">
+            <div className="bg-yellow-50 p-4 rounded-lg border-l-4 border-yellow-400">
+              <div className="flex">
+                <div className="flex-shrink-0">
+                  <svg className="h-5 w-5 text-yellow-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div className="ml-3">
+                  <p className="text-sm text-yellow-700">
+                    No subjective data found. Please ensure subjective intake data has been saved for this patient.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse border-t border-gray-200">
+          <button
+            onClick={() => setModalIsOpen(false)}
+            className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm"
+          >
+            Close
+          </button>
+        </div>
+      </Modal>
     </div>
   );
 };
