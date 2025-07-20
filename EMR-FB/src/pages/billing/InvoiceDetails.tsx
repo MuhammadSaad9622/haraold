@@ -86,7 +86,7 @@ const InvoiceDetails: React.FC = () => {
     const fetchInvoice = async () => {
       setIsLoading(true);
       try {
-        const response = await axios.get(`http://localhost:5000/api/billing/${id}`);
+        const response = await axios.get(`https://emr-h.onrender.com/api/billing/${id}`);
         setInvoice(response.data);
         
         // Set default payment amount to remaining balance
@@ -191,11 +191,11 @@ const InvoiceDetails: React.FC = () => {
 
   const handleRecordPayment = async () => {
     try {
-      await axios.post(`http://localhost:5000/api/billing/${id}/payments`, paymentData);
+      await axios.post(`https://emr-h.onrender.com/api/billing/${id}/payments`, paymentData);
       setShowPaymentModal(false);
       
       // Refresh invoice data
-      const response = await axios.get(`http://localhost:5000/api/billing/${id}`);
+      const response = await axios.get(`https://emr-h.onrender.com/api/billing/${id}`);
       setInvoice(response.data);
     } catch (error) {
       console.error('Error recording payment:', error);
