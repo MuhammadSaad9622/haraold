@@ -162,7 +162,7 @@ const [diagnosisModalOpen, setDiagnosisModalOpen] = useState(false);
 const { data: patientData, isLoading } = useQuery({
   queryKey: ['patientData', id],
   queryFn: async () => {
-    const res = await axios.get(`http://localhost:5000/api/patients/${id}`);
+    const res = await axios.get(`https://emr-h.onrender.com/api/patients/${id}`);
     console.log("Patient API Response:", res.data);
     if (!res.data) throw new Error("No patient data returned");
     return res.data; // ✅ Fix: directly return res.data (not res.data.patient)
@@ -349,7 +349,7 @@ const { data: patientData, isLoading } = useQuery({
   
     try {
       // First, save the visit data
-      const response = await axios.post(`http://localhost:5000/api/visits`, {
+      const response = await axios.post(`https://emr-h.onrender.com/api/visits`, {
          ...formData,
          patient: id,
          doctor: user?._id,
@@ -360,14 +360,14 @@ const { data: patientData, isLoading } = useQuery({
       
       // Then, generate AI narrative
       try {
-        const aiResponse = await axios.post(`http://localhost:5000/api/generate-narrative`, {
+        const aiResponse = await axios.post(`https://emr-h.onrender.com/api/generate-narrative`, {
           ...formData,
           visitType: 'initial'
         });
 
         if (aiResponse.data.success) {
           // Update the visit with the AI narrative
-          await axios.patch(`http://localhost:5000/api/visits/${savedVisitId}`, {
+          await axios.patch(`https://emr-h.onrender.com/api/visits/${savedVisitId}`, {
             aiNarrative: aiResponse.data.narrative
           });
         }
