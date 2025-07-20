@@ -71,7 +71,7 @@ const BillingList: React.FC<BillingListProps> = ({
 const fetchInvoices = async () => {
   setIsLoading(true);
   try {
-    let url = `http://localhost:5000/api/billing?page=${currentPage}`;
+    let url = `https://emr-h.onrender.com/api/billing?page=${currentPage}`;
     
     if (searchTerm) url += `&search=${searchTerm}`;
     if (statusFilter) url += `&status=${statusFilter}`;
@@ -97,7 +97,7 @@ const fetchInvoices = async () => {
 
   const fetchBillingSummary = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/billing/summary/dashboard');
+      const response = await axios.get('https://emr-h.onrender.com/api/billing/summary/dashboard');
       setBillingStats(response.data);
     } catch (error) {
       console.error('Error fetching billing summary:', error);
